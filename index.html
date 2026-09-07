@@ -357,10 +357,10 @@
   <!-- 1. PINTU DIPISAH PER KOTAK (KOLOM Q)       -->
   <!-- 2. LINE MENYESUAIKAN KOLOM O DI SHEET      -->
   <!-- ========================================== -->
-  <main class="flex-1 p-3 sm:p-5 max-w-[1920px] w-full mx-auto">
+  <main class="flex-1 p-3 sm:p-5 w-full max-w-[2600px] mx-auto">
     <div class="dock-scroll overflow-x-auto pb-6">
       
-      <div id="dock-workspace" class="flex flex-col gap-5 min-w-[1780px] w-full items-start transition-transform duration-200">
+      <div id="dock-workspace" class="flex flex-col gap-5 min-w-[2380px] w-full items-start transition-transform duration-200">
         
         <!-- =================================================== -->
         <!-- 1. SEKSI PINTU OUTBOUND (PINTU DIPISAH PER KOTAK)   -->
@@ -384,49 +384,60 @@
               </span>
             </div>
 
-            <div class="text-[11px] text-slate-500 font-mono">
-              Sejajar langsung dengan Line Staging di bawah ↓
+            <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+              <span>Sejajar langsung dengan Line Staging di bawah ↓</span>
             </div>
           </div>
 
           <!-- Deretan 8 Kotak Pintu Berdiri Sendiri -->
-          <div id="doors-container" class="grid grid-cols-8 gap-3 min-w-[1780px] w-full items-stretch">
+          <div id="doors-container" class="grid grid-cols-8 gap-3 min-w-[2380px] w-full items-stretch">
             <!-- 8 Komponen Kartu Pintu Outbound akan dirender dinamis di sini -->
           </div>
         </section>
 
         <!-- =================================================== -->
-        <!-- 2. SATU KOTAK BESAR UTUH UNTUK LINE STAGING         -->
+        <!-- 2. SATU KOTAK BESAR UTUH UNTUK LINE STAGING (33-62) -->
         <!-- =================================================== -->
-        <section id="lines-unified-section" class="w-full bg-white border-2 border-slate-900 rounded-xl shadow-md overflow-hidden min-w-[1780px] transition-all">
+        <section id="lines-unified-section" class="w-full bg-white border-2 border-slate-900 rounded-xl shadow-md min-w-[2380px] transition-all">
           
           <!-- Header Utama 1 Kotak Line Staging -->
-          <div class="bg-slate-900 text-white px-4 py-2.5 flex flex-wrap items-center justify-between border-b-2 border-slate-900 gap-3">
+          <div class="bg-slate-900 text-white px-4 py-2.5 flex flex-wrap items-center justify-between border-b-2 border-slate-900 gap-3 rounded-t-lg">
             <div class="flex items-center gap-2.5">
               <span class="w-2.5 h-6 rounded-xs bg-emerald-500 inline-block"></span>
               <div>
                 <div class="flex items-center gap-2">
                   <h2 id="lines-main-title" class="text-sm sm:text-base font-black uppercase tracking-wider text-white">
-                    LINE STAGING OUTBOUND (LINE 33 - LINE 56)
+                    LINE STAGING OUTBOUND (LINE 33 - LINE 62)
                   </h2>
                   <span id="lines-main-subtitle" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded">
-                    1 Kotak Staging Terpadu • 24 Line (9 Slot Pallet / Line)
+                    1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Data Kolom O)
                   </span>
                 </div>
                 <p class="text-[11px] text-slate-300">
-                  Area Staging Pallet Terpadu sesuai Kolom O (Line) & Kolom Q (Pintu) • Klik nomor ST/BR untuk rincian barang pivot (Article, Nama, QTY, CBM)
+                  Area Staging Pallet Terpadu sesuai Kolom O (Line 33 s/d Line 62) & Kolom Q (Pintu 08-15) • Klik nomor ST/BR untuk rincian barang pivot
                 </p>
               </div>
             </div>
 
-            <!-- Ringkasan Status ST/BR dan Indikator Warna di dalam 1 Kotak Line -->
-            <div class="flex items-center gap-2 text-xs font-mono">
-              <div class="hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-800/90 text-slate-200 border border-slate-700 rounded text-[10.5px] font-bold">
-                <span class="text-slate-400">Pilihan Warna:</span>
+            <!-- Tombol Navigasi Cepat, Ringkasan Status ST/BR, dan Indikator Warna -->
+            <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
+              <!-- Tombol Navigasi Cepat ke Line (Langsung Lompat ke Line 33 / Line 62) -->
+              <div class="inline-flex items-center gap-1 px-2 py-1 bg-slate-800/90 text-slate-200 border border-slate-700 rounded text-[10.5px]">
+                <span class="text-slate-400 text-[10px] uppercase font-bold mr-0.5">Navigasi:</span>
+                <button type="button" onclick="scrollToSpecificLine(33)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 33 (Awal)">◀ Line 33</button>
+                <button type="button" onclick="scrollToSpecificLine(45)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 45 (Tengah)">Line 45</button>
+                <button type="button" onclick="scrollToSpecificLine(51)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 51 (Pintu 14)">Line 51</button>
+                <button type="button" onclick="scrollToSpecificLine(57)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 57 (Pintu 15)">Line 57</button>
+                <button type="button" onclick="scrollToSpecificLine(62)" class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded text-[10.5px] transition cursor-pointer shadow-xs" title="Lompat ke Line 62 (Line Paling Kanan)">▶ Line 62</button>
+              </div>
+
+              <div class="hidden 2xl:inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-800/90 text-slate-200 border border-slate-700 rounded text-[10.5px] font-bold">
+                <span class="text-slate-400">Pilihan:</span>
                 <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-rose-950/70 text-rose-300 border border-rose-500/40 text-[9.5px]">🔴 Merah</span>
                 <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-amber-950/70 text-amber-300 border border-amber-500/40 text-[9.5px]">🟡 Kuning</span>
                 <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-blue-950/70 text-blue-300 border border-blue-500/40 text-[9.5px]">🔵 Biru</span>
                 <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-orange-950/70 text-orange-300 border border-orange-500/40 text-[9.5px]">🟠 Orange</span>
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 text-[9.5px]">🟢 Hijau</span>
               </div>
               <span class="px-2.5 py-1 bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 rounded font-bold text-[11px]">
                 Terisi ST: <span id="summary-st0-count">0</span>
@@ -441,7 +452,7 @@
           </div>
 
           <!-- Konten 30 Line di dalam SATU KOTAK (Line 33 s/d Line 62 tanpa skat / pembatas) -->
-          <div id="lines-group-container" class="grid grid-cols-[repeat(30,minmax(66px,1fr))] gap-1.5 p-3 bg-slate-100/70 w-full min-w-[2180px] items-start">
+          <div id="lines-group-container" class="grid gap-1.5 p-3 bg-slate-100/70 w-full min-w-[2380px] items-start">
             <!-- Komponen Line 33 s/d Line 62 akan dirender dinamis di sini oleh JavaScript -->
           </div>
 
@@ -825,6 +836,26 @@
 
     // Daftar pintu yang ditampilkan pada dashboard (Pintu 08 sampai 15, 8 Pintu Outbound)
     const TARGET_DOORS = [8, 9, 10, 11, 12, 13, 14, 15];
+
+    // Pemetaan Line Staging Outbound default (Line 33 s/d Line 62 = 30 Line total)
+    // Sesuai tata letak dermaga gudang: seluruh 30 Line dari 33 sampai 62 selalu ditampilkan
+    // Pintu 08-13 (Line 33-50, 3 line/pintu), Pintu 14 (Line 51-56, 6 line), Pintu 15 (Line 57-62, 6 line)
+    const DEFAULT_DOOR_LINES = {
+      8: [33, 34, 35],
+      9: [36, 37, 38],
+      10: [39, 40, 41],
+      11: [42, 43, 44],
+      12: [45, 46, 47],
+      13: [48, 49, 50],
+      14: [51, 52, 53, 54, 55, 56],
+      15: [57, 58, 59, 60, 61, 62]
+    };
+
+    // Rentang Line Staging Gudang Terpadu (30 Line: 33 s/d 62)
+    const TOTAL_STAGING_LINES_MIN = 33;
+    const TOTAL_STAGING_LINES_MAX = 62;
+    const TOTAL_STAGING_LINES_COUNT = 30;
+
     const PALLETS_PER_DOOR = 27; // Default 3 line x 9 baris pallet
     const REFRESH_INTERVAL_SEC = 30; // Auto-refresh setiap 30 detik
 
@@ -897,7 +928,9 @@
         const pic = picList[index % picList.length];
         const armadaCap = getArmadaCapacity(armada);
         const lcNumber = (doorNum === 8) ? '260906L053' : `260905L${String(60 + index * 4).padStart(3, '0')}`;
-        const baseLine = 33 + index * 3;
+        const doorLines = DEFAULT_DOOR_LINES[doorNum] || [33 + index * 3, 33 + index * 3 + 1, 33 + index * 3 + 2];
+        const baseLine = doorLines[0];
+        const lineRangeStr = doorLines.length > 1 ? `${doorLines[0]}-${doorLines[doorLines.length - 1]}` : `${doorLines[0]}`;
         
         // Pintu 8: Sesuai contoh spesifik dari user:
         // Armada: CDD LONG (Kolom T: 15), LC: 260906L053, Total Stage: 2.71 CBM, Belum ST: 7.85 CBM (Sisa: 10.56 CBM)
@@ -982,7 +1015,7 @@
 
         // Generate nomor staging lainnya per pintu (beberapa memiliki multiple baris sheet untuk menguji pivot)
         // Memasukkan contoh ST000 dan BR000 ke line-line staging secara proporsional
-        const uniqueStCount = [14, 25, 20, 16, 22, 15, 21, 18][index % 8] || 16;
+        const uniqueStCount = doorLines.length > 3 ? (doorLines.length * 4) : ([14, 25, 20, 16, 22, 15, 21, 18][index % 8] || 16);
         const startIndex = (doorNum === 9) ? 2 : 1;
 
         for (let i = startIndex; i <= uniqueStCount; i++) {
@@ -992,8 +1025,8 @@
             ? `BR0001${String(2500 + index * 40 + i).padStart(4, '0')}`
             : `ST0019${String(1700 + index * 35 + i).padStart(4, '0')}`;
           
-          // Alokasikan ke salah satu dari 3 line pintu ini (atau line kustom jika ada)
-          const targetLineForThisSt = baseLine + ((i - 1) % 3);
+          // Alokasikan ke salah satu line pintu ini (mendukung Line 33 sampai Line 62)
+          const targetLineForThisSt = doorLines[(i - 1) % doorLines.length];
 
           // Beberapa ST/BR nomor memiliki 2 baris sheet untuk simulasi pivot
           const rowsForThisSt = (i % 3 === 0) ? 2 : 1;
@@ -1014,7 +1047,7 @@
             rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${st0Code}-OK`;
             rowArr[SHEET_COLUMNS.LOADED_L] = isThisLoaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = isThisLoaded ? `10:${String((i * 4) % 55).padStart(2, '0')}` : '';
-            rowArr[SHEET_COLUMNS.LINE] = targetLineForThisSt; // Kolom O: Line Staging
+            rowArr[SHEET_COLUMNS.LINE] = targetLineForThisSt; // Kolom O: Line Staging (33-62)
             rowArr[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             rowArr[SHEET_COLUMNS.PIC] = pic;
@@ -1024,7 +1057,7 @@
         }
 
         // Tambahkan baris dengan Kolom K kosong / belum ada ST untuk demonstrasi CBM belum staging
-        if (index % 2 === 1) {
+        if (index % 2 === 1 || doorLines.length > 3) {
           const unassignedSamples = [
             { article: '10781290', name: 'PASTA GIGI HERBAL PROTECTION 190G', qty: 65, cbm: 0.95 },
             { article: '10892341', name: 'TISSUE FACIAL SOFT PACK 250S', qty: 110, cbm: 1.45 }
@@ -1039,9 +1072,8 @@
             unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kolom K kosong / belum ada ST
             unRow[SHEET_COLUMNS.LOADED_L] = '';
             unRow[SHEET_COLUMNS.LOADED_M] = '';
-            unRow[SHEET_COLUMNS.LINE] = `${baseLine}-${baseLine + 2}`; // Kolom O: Line Staging
+            unRow[SHEET_COLUMNS.LINE] = lineRangeStr; // Kolom O: Line Staging
             unRow[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
-            rowArr = unRow;
             unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             unRow[SHEET_COLUMNS.PIC] = pic;
             unRow[SHEET_COLUMNS.CBM_ARMADA] = armadaCap; // Kolom T: Kapasitas CBM Armada
@@ -1357,14 +1389,13 @@
 
         // 1. Tentukan urutan Line untuk Pintu ini dari Kolom O
         let detectedLines = Array.from(doorObj.linesSet).sort((a, b) => a - b);
-        // Fallback jika data Kolom O belum diisi di sheet: default 3 line (P08: 33-35, P09: 36-38, dst.)
+        // Fallback jika data Kolom O belum diisi di sheet: gunakan pemetaan default dermaga
         if (detectedLines.length === 0) {
-          const baseLine = 33 + doorIdx * 3;
-          detectedLines = [baseLine, baseLine + 1, baseLine + 2];
+          detectedLines = DEFAULT_DOOR_LINES[doorNum] || [33 + doorIdx * 3, 33 + doorIdx * 3 + 1, 33 + doorIdx * 3 + 2];
         }
         doorObj.lines = detectedLines;
 
-        // Buat label string ringkas (misal: "Line 33-35", "Line 33-34", "Line 36")
+        // Buat label string ringkas (misal: "Line 33-35", "Line 51-56", "Line 57-62")
         if (detectedLines.length === 1) {
           doorObj.lineLabel = `Line ${detectedLines[0]}`;
         } else if (detectedLines.length > 1) {
@@ -1421,6 +1452,39 @@
           allSlotted.push(...linePallets[ln]);
         });
         doorObj.pallets = allSlotted;
+      });
+
+      // Pastikan seluruh 30 Line dari 33 s/d 62 selalu terhubung ke pintu (jika ada line yang belum tercakup di sheet)
+      for (let ln = TOTAL_STAGING_LINES_MIN; ln <= TOTAL_STAGING_LINES_MAX; ln++) {
+        const isCovered = TARGET_DOORS.some(dNum => groupedDoors[dNum].lines.includes(ln));
+        if (!isCovered) {
+          const defDoorStr = Object.keys(DEFAULT_DOOR_LINES).find(d => DEFAULT_DOOR_LINES[d].includes(ln)) || '15';
+          const targetDoor = groupedDoors[parseInt(defDoorStr, 10)];
+          if (targetDoor) {
+            targetDoor.lines.push(ln);
+            targetDoor.lines.sort((a, b) => a - b);
+            if (!targetDoor.linePalletsMap) targetDoor.linePalletsMap = {};
+            if (!targetDoor.linePalletsMap[ln]) targetDoor.linePalletsMap[ln] = [];
+          }
+        }
+      }
+
+      // Re-generate lineLabel agar akurat setelah kelengkapan line 33-62 dipastikan
+      TARGET_DOORS.forEach(doorNum => {
+        const doorObj = groupedDoors[doorNum];
+        const lines = doorObj.lines;
+        if (lines.length === 1) {
+          doorObj.lineLabel = `Line ${lines[0]}`;
+        } else if (lines.length > 1) {
+          const isSeq = lines.every((val, i) => i === 0 || val === lines[i - 1] + 1);
+          if (isSeq) {
+            doorObj.lineLabel = `Line ${lines[0]}-${lines[lines.length - 1]}`;
+          } else {
+            doorObj.lineLabel = `Line ${lines.join(', ')}`;
+          }
+        } else {
+          doorObj.lineLabel = `Line -`;
+        }
       });
 
       return groupedDoors;
@@ -1770,7 +1834,7 @@
       }
     };
 
-    // Palet warna bawaan per pintu saat proses aktif (warna variatif: Kuning, Biru, Orange, Merah)
+    // Palet warna bawaan per pintu saat proses aktif (warna variatif: Kuning, Biru, Orange, Merah, Hijau)
     const DEFAULT_DOOR_COLORS = {
       8: 'kuning',
       9: 'biru',
@@ -1778,7 +1842,7 @@
       11: 'merah',
       12: 'biru',
       13: 'kuning',
-      14: 'orange',
+      14: 'hijau',
       15: 'merah'
     };
 
@@ -1927,9 +1991,13 @@
       const doorData = state.dataDoors[doorNum];
       const lines = (doorData && doorData.lines && doorData.lines.length > 0)
         ? doorData.lines
-        : [33 + (doorNum - 8) * 3, 33 + (doorNum - 8) * 3 + 1, 33 + (doorNum - 8) * 3 + 2];
+        : (DEFAULT_DOOR_LINES[doorNum] || [33 + (doorNum - 8) * 3]);
       
-      const targetCol = document.getElementById(`line-col-${lines[0]}`);
+      // Jika Pintu 15, scroll agar Line 57 sampai Line 62 terlihat penuh
+      const targetCol = (doorNum === 15)
+        ? (document.getElementById('line-col-62') || document.getElementById(`line-col-${lines[0]}`))
+        : document.getElementById(`line-col-${lines[0]}`);
+
       if (targetCol) {
         targetCol.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         
@@ -1939,16 +2007,36 @@
             el.classList.add('ring-4', 'ring-blue-500', 'bg-blue-50/80', 'rounded-xs');
             setTimeout(() => {
               el.classList.remove('ring-4', 'ring-blue-500', 'bg-blue-50/80', 'rounded-xs');
-            }, 1600);
+            }, 1800);
           }
         });
       }
     }
+    window.scrollToLineGroup = scrollToLineGroup;
+
+    /**
+     * Lompat langsung dan highlight nomor line tertentu (misal: Line 33, Line 45, Line 62)
+     */
+    function scrollToSpecificLine(lineNum) {
+      const targetCol = document.getElementById(`line-col-${lineNum}`);
+      const scrollContainer = document.querySelector('.dock-scroll');
+
+      if (targetCol) {
+        targetCol.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        targetCol.classList.add('ring-4', 'ring-emerald-500', 'bg-emerald-100/90', 'rounded-xs', 'scale-102');
+        setTimeout(() => {
+          targetCol.classList.remove('ring-4', 'ring-emerald-500', 'bg-emerald-100/90', 'rounded-xs', 'scale-102');
+        }, 2200);
+      } else if (lineNum === 62 && scrollContainer) {
+        scrollContainer.scrollTo({ left: scrollContainer.scrollWidth, behavior: 'smooth' });
+      }
+    }
+    window.scrollToSpecificLine = scrollToSpecificLine;
 
     /**
      * Render komponen Pintu & Line:
      * 1. Pintu dipisah menjadi deretan kartu tersendiri di bagian atas (8 pintu: PINTU 08 - 15)
-     * 2. Line disatukan dalam 1 kotak staging terpadu di bagian bawah menyesuaikan data Kolom O
+     * 2. Line disatukan dalam 1 kotak staging terpadu di bagian bawah menyesuaikan data Kolom O (Line 33 s/d 62)
      */
     function renderDoorsUI() {
       const doorsContainer = document.getElementById('doors-container');
@@ -1969,9 +2057,14 @@
         const pallets = doorData.pallets;
         const overflowCount = doorData.overflow.length;
         const armadaLabel = doorData.armada || 'BELUM ADA ARMADA';
-        const baseLine = 33 + doorIdx * 3;
-        const lineLabel = doorData.lineLabel || `Line ${baseLine}-${baseLine+2}`;
-        const maxPalletSlots = doorData.lines && doorData.lines.length > 0 ? doorData.lines.length * 9 : 27;
+        const baseLine = (DEFAULT_DOOR_LINES[doorNum] && DEFAULT_DOOR_LINES[doorNum][0]) || (33 + doorIdx * 3);
+        const defLineLabel = DEFAULT_DOOR_LINES[doorNum]
+          ? `Line ${DEFAULT_DOOR_LINES[doorNum][0]}-${DEFAULT_DOOR_LINES[doorNum][DEFAULT_DOOR_LINES[doorNum].length - 1]}`
+          : `Line ${baseLine}-${baseLine+2}`;
+        const lineLabel = doorData.lineLabel || defLineLabel;
+        const maxPalletSlots = doorData.lines && doorData.lines.length > 0
+          ? doorData.lines.length * 9
+          : (DEFAULT_DOOR_LINES[doorNum] ? DEFAULT_DOOR_LINES[doorNum].length * 9 : 27);
 
         // Hitung total CBM per pintu
         let doorTotalCbm = 0;
@@ -2198,33 +2291,66 @@
       // =======================================================================
       // 2. RENDER SEKSI LINE STAGING (1 KOTAK BESAR MENYESUAIKAN DATA DARI KOLOM O)
       // =======================================================================
+      // Seluruh line (Line 33 s/d Line 62 = 30 Line) disusun berbaris ke kanan dalam 1 kotak staging terpadu
       const allRenderedLines = [];
+      const renderedLineSet = new Set();
+
+      // 1. Kumpulkan line dari masing-masing pintu (berdasarkan data Kolom O / mapping pintu)
       TARGET_DOORS.forEach((doorNum, doorIdx) => {
         const doorData = state.dataDoors[doorNum] || { armada: '', pallets: [], lines: [] };
         const lines = (doorData.lines && doorData.lines.length > 0)
           ? doorData.lines
-          : [33 + doorIdx * 3, 33 + doorIdx * 3 + 1, 33 + doorIdx * 3 + 2];
+          : (DEFAULT_DOOR_LINES[doorNum] || [33 + doorIdx * 3, 33 + doorIdx * 3 + 1, 33 + doorIdx * 3 + 2]);
         
         lines.forEach((lineNum, lIdx) => {
-          allRenderedLines.push({
-            lineNum,
-            doorNum,
-            doorData,
-            lineIndexInDoor: lIdx
-          });
+          if (!renderedLineSet.has(lineNum)) {
+            renderedLineSet.add(lineNum);
+            allRenderedLines.push({
+              lineNum,
+              doorNum,
+              doorData,
+              lineIndexInDoor: lIdx
+            });
+          }
         });
       });
 
-      const totalLines = allRenderedLines.length;
-      const minColWidth = 66;
-      const minWidthPx = Math.max(1680, totalLines * minColWidth);
+      // 2. Pastikan seluruh rentang Line 33 sampai Line 62 selalu lengkap dan ada
+      for (let ln = TOTAL_STAGING_LINES_MIN; ln <= TOTAL_STAGING_LINES_MAX; ln++) {
+        if (!renderedLineSet.has(ln)) {
+          renderedLineSet.add(ln);
+          const defDoorStr = Object.keys(DEFAULT_DOOR_LINES).find(d => DEFAULT_DOOR_LINES[d].includes(ln)) || '15';
+          const defaultDoor = parseInt(defDoorStr, 10);
+          const doorData = state.dataDoors[defaultDoor] || { armada: '', pallets: [], lines: [] };
+          allRenderedLines.push({
+            lineNum: ln,
+            doorNum: defaultDoor,
+            doorData,
+            lineIndexInDoor: 0
+          });
+        }
+      }
 
-      // Sinkronisasi lebar area dock dan kontainer line
+      // Urutkan Line secara menaik dari Line 33 sampai Line 62
+      allRenderedLines.sort((a, b) => a.lineNum - b.lineNum);
+
+      const totalLines = allRenderedLines.length;
+      const minColWidth = 68;
+      const gapPx = 6;
+      const paddingPx = 24;
+      // Formula lebar penuh: (totalLines * minColWidth) + ((totalLines - 1) * gapPx) + paddingPx + margin
+      const trueContentWidth = (totalLines * minColWidth) + ((totalLines - 1) * gapPx) + paddingPx + 40;
+      const minWidthPx = Math.max(2380, trueContentWidth);
+
+      // Sinkronisasi lebar area dock dan kontainer line agar Line 33 s/d Line 62 selalu tampak utuh tanpa terpotong
       const workspace = document.getElementById('dock-workspace');
       if (workspace) workspace.style.minWidth = `${minWidthPx}px`;
       doorsContainer.style.minWidth = `${minWidthPx}px`;
       const linesSec = document.getElementById('lines-unified-section');
-      if (linesSec) linesSec.style.minWidth = `${minWidthPx}px`;
+      if (linesSec) {
+        linesSec.style.minWidth = `${minWidthPx}px`;
+        linesSec.style.overflow = 'visible';
+      }
 
       linesContainer.className = 'grid gap-1.5 p-3 bg-slate-100/70 w-full items-start';
       linesContainer.style.gridTemplateColumns = `repeat(${totalLines}, minmax(${minColWidth}px, 1fr))`;
