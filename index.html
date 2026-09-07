@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitoring Staging Outbound Gudang</title>
+  <meta name="description" content="Dashboard real-time monitoring staging outbound dermaga gudang logistik terintegrasi Google Sheets gviz API." />
+  <meta property="og:title" content="Monitoring Staging Outbound Gudang" />
+  <meta property="og:description" content="Dashboard real-time monitoring staging outbound dermaga gudang logistik terintegrasi Google Sheets gviz API." />
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              navy: '#0f172a',
+              accent: '#2563eb',
+            },
+            dock: {
+              filled: '#dcfce7',
+              filledBorder: '#16a34a',
+              filledText: '#14532d',
+              empty: '#f8fafc',
+              emptyBorder: '#cbd5e1',
+              emptyText: '#94a3b8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Styling tambahan untuk presisi dashboard operasional */
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      min-height: 100vh;
+    }
+
+    /* Scrollbar horizontal elegan untuk dermaga pintu */
+    .dock-scroll::-webkit-scrollbar {
+      height: 10px;
+    }
+    .dock-scroll::-webkit-scrollbar-track {
+      background: #e2e8f0;
+      border-radius: 6px;
+    }
+    .dock-scroll::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 6px;
+    }
+    .dock-scroll::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    /* Ketinggian kotak pallet dibuat seragam dan proporsional untuk nomor ST & CBM */
+    .pallet-slot {
+      min-height: 62px;
+      height: 62px;
+      transition: all 0.15s ease-in-out;
+    }
+    .pallet-slot.slot-filled {
+      cursor: pointer;
+    }
+    .pallet-slot.slot-filled:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px -1px rgba(16, 185, 129, 0.35);
+      border-color: #059669;
+      background-color: #d1fae5;
+      z-index: 10;
+    }
+    .pallet-slot.slot-filled:active {
+      transform: scale(0.97);
+    }
+
+    /* Efek denyut saat update */
+    @keyframes subtle-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .pulse-sync {
+      animation: subtle-pulse 1.5s infinite;
+    }
+
+    /* Animasi visual garis miring berjalan (loading striped bar) */
+    @keyframes stripes-move {
+      0% { background-position: 0 0; }
+      100% { background-position: 28px 0; }
+    }
+    .animated-stripes {
+      background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.28) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.28) 50%,
+        rgba(255, 255, 255, 0.28) 75%,
+        transparent 75%,
+        transparent
+      );
+      background-size: 14px 14px;
+      animation: stripes-move 1.2s linear infinite;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- ========================================== -->
+  <!-- HEADER UTAMA DASHBOARD OPERASIONAL         -->
+  <!-- ========================================== -->
+  <header id="app-header" class="bg-slate-900 text-white border-b-4 border-blue-600 shadow-md sticky top-0 z-40">
+    <div class="max-w-[1920px] mx-auto px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Judul & Logo Dermaga -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-inner font-bold text-xl border border-blue-400/40">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white uppercase">
+              Monitoring Staging Outbound
+            </h1>
+            <span class="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded">
+              Dock 08 - 17 • Line 33 - Line 62
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">
+            Sistem Kontrol Alokasi Dermaga & Verifikasi Pallet Outbound
+          </p>
+        </div>
+      </div>
+
+      <!-- Jam Realtime & Status Refresh -->
+      <div class="flex flex-wrap items-center gap-3 sm:gap-6 text-sm">
+        
+        <!-- Live Clock -->
+        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-2.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <div class="leading-tight">
+            <div id="live-time" class="font-mono font-bold text-slate-100 text-sm">--:--:-- WIB</div>
+            <div id="live-date" class="text-[10px] text-slate-400">-- --- ----</div>
+          </div>
+        </div>
+
+        <!-- Refresh Countdown & Status Indicator -->
+        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="sync-label" class="text-xs font-semibold text-slate-200">LIVE</span>
+          </div>
+          <div class="h-4 w-px bg-slate-700"></div>
+          <div class="text-xs text-slate-300">
+            <span>Refresh: </span>
+            <span id="countdown-text" class="font-mono font-bold text-amber-300">30s</span>
+          </div>
+          <div class="h-4 w-px bg-slate-700"></div>
+          <div class="text-[11px] text-slate-400 hidden md:block">
+            Terakhir: <span id="last-update-time" class="font-mono text-slate-300">-</span>
+          </div>
+        </div>
+
+        <!-- Tombol Aksi -->
+        <div class="flex items-center gap-2">
+          
+          <!-- Tombol Refresh Manual -->
+          <button id="btn-refresh" title="Muat Ulang Data Sekarang" class="p-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-lg transition shadow flex items-center gap-1.5 text-xs font-medium">
+            <svg id="refresh-icon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
+
+          <!-- Tombol Setting Sheet -->
+          <button id="btn-settings" title="Pengaturan Spreadsheet / Sumber Data" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 rounded-lg transition flex items-center gap-1.5 text-xs font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span class="hidden sm:inline">Google Sheet</span>
+          </button>
+
+          <!-- Kontrol Zoom Tampilan (Zoom In / Out / Reset) -->
+          <div class="flex items-center bg-slate-800 border border-slate-700 rounded-lg p-0.5 text-xs">
+            <button id="btn-zoom-out" title="Perkecil Ukuran (Zoom Out)" class="px-2 py-1 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition font-bold font-mono text-sm leading-none">
+              −
+            </button>
+            <button id="btn-zoom-reset" title="Kembalikan Ukuran Normal (100%)" class="px-1.5 py-1 text-[11px] text-slate-200 font-mono font-bold hover:text-white leading-none">
+              <span id="zoom-label">100%</span>
+            </button>
+            <button id="btn-zoom-in" title="Perbesar Ukuran (Zoom In)" class="px-2 py-1 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition font-bold font-mono text-sm leading-none">
+              +
+            </button>
+          </div>
+
+          <!-- Tombol Layar Penuh (Fullscreen untuk TV Monitoring) -->
+          <button id="btn-fullscreen" title="Layar Penuh / TV Monitoring" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 rounded-lg transition text-xs font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- BANNER STATUS SUMBER DATA & STATISTIK      -->
+  <!-- ========================================== -->
+  <section id="status-bar" class="bg-white border-b border-slate-200 px-4 py-2.5 sm:px-6 shadow-sm">
+    <div class="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Sumber Data Info -->
+      <div class="flex items-center gap-2 text-xs text-slate-600">
+        <span class="font-semibold text-slate-900 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Sumber:
+        </span>
+        <span id="source-badge" class="px-2 py-0.5 rounded font-mono font-medium text-[11px] bg-blue-50 text-blue-700 border border-blue-200">
+          Demo Simulation
+        </span>
+        <span id="sheet-name-badge" class="text-slate-400 text-[11px]">Tab: "DATA"</span>
+      </div>
+
+      <!-- Ringkasan Statistik Cepat -->
+      <div class="flex flex-wrap items-center gap-4 text-xs">
+        
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">Pintu Aktif:</span>
+          <span id="stat-active-doors" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">10 Pintu</span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">Total Pallet Terisi:</span>
+          <span id="stat-filled-pallets" class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            0 / 270 (0%)
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">Total CBM:</span>
+          <span id="stat-total-cbm" class="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-mono">
+            0.00 CBM
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">Belum ST (Kolom K Kosong):</span>
+          <span id="stat-unassigned-cbm" class="font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-300 font-mono" title="Total volume CBM baris sheet dengan Kolom K kosong / belum ada ST">
+            0.00 CBM
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">Sudah Dimuat (Kolom L/M):</span>
+          <span id="stat-loaded-cbm" class="font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-300 font-mono" title="Total volume CBM baris sheet dengan Kolom L atau M terisi">
+            0.00 CBM
+          </span>
+        </div>
+
+        <!-- Legend / Petunjuk Warna -->
+        <div class="h-4 w-px bg-slate-300 hidden md:block"></div>
+        <div class="flex items-center gap-3 text-[11px] text-slate-600">
+          <div class="flex items-center gap-1">
+            <span class="w-3.5 h-3.5 rounded bg-emerald-100 border border-emerald-500 inline-block shadow-xs"></span>
+            <span class="font-medium text-slate-700">Terisi (ST0 & Total CBM)</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="w-3.5 h-3.5 rounded bg-slate-50 border border-dashed border-slate-300 inline-block"></span>
+            <span class="text-slate-500">Kosong</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- NOTIFIKASI ERROR / PANDUAN KONEKSI SHEET   -->
+  <!-- ========================================== -->
+  <div id="error-banner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-3 sm:px-6 text-amber-900">
+    <div class="max-w-[1920px] mx-auto flex items-start justify-between gap-3">
+      <div class="flex items-start gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div>
+          <h4 class="font-bold text-sm text-amber-800" id="error-title">Koneksi Spreadsheet Bermasalah</h4>
+          <p class="text-xs text-amber-700 mt-0.5" id="error-message">
+            Gagal mengambil data dari Google Sheets. Pastikan akses Google Sheet diubah ke "Anyone with the link can view".
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btn-use-demo-fallback" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-semibold shadow transition">
+          Gunakan Data Demo
+        </button>
+        <button id="btn-dismiss-error" class="p-1 text-amber-700 hover:text-amber-900">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- AREA UTAMA DERMAGA OUTBOUND (DOCK 08 - 17) -->
+  <!-- ========================================== -->
+  <main class="flex-1 p-3 sm:p-5 max-w-[1920px] w-full mx-auto">
+    <div class="dock-scroll overflow-x-auto pb-6">
+      
+      <!-- Container 10 Pintu Berjejer Horizontal (Line 33 - Line 62) -->
+      <div id="doors-container" class="grid grid-cols-10 gap-3 sm:gap-4 min-w-[2080px] w-full items-start transition-transform duration-200">
+        <!-- Komponen 10 Pintu akan dirender dinamis di sini oleh JavaScript -->
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL PENGATURAN GOOGLE SPREADSHEET       -->
+  <!-- ========================================== -->
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+      
+      <!-- Modal Header -->
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <h3 class="font-bold text-base">Konfigurasi Google Spreadsheet</h3>
+        </div>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-white transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4">
+        
+        <!-- Toggle Mode -->
+        <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+          <div>
+            <div class="font-semibold text-xs text-slate-800">Mode Data</div>
+            <div class="text-[11px] text-slate-500">Pilih antara data live Google Sheet atau data simulasi demo</div>
+          </div>
+          <div class="flex bg-slate-200 p-0.5 rounded-lg text-xs font-semibold">
+            <button id="mode-demo-btn" class="px-3 py-1 rounded-md transition text-slate-700">Demo</button>
+            <button id="mode-live-btn" class="px-3 py-1 rounded-md transition bg-blue-600 text-white shadow-xs">Live Sheet</button>
+          </div>
+        </div>
+
+        <!-- Input URL / ID Sheet -->
+        <div>
+          <label for="input-sheet-url" class="block text-xs font-semibold text-slate-700 mb-1">
+            Google Spreadsheet URL atau Sheet ID:
+          </label>
+          <input 
+            type="text" 
+            id="input-sheet-url" 
+            placeholder="Contoh: https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit" 
+            class="w-full text-xs font-mono px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-800"
+          />
+          <p class="text-[11px] text-slate-500 mt-1">
+            Bisa berupa URL lengkap dokumen Google Sheet atau hanya ID Spreadsheet-nya saja.
+          </p>
+        </div>
+
+        <!-- Input Nama Sheet Tab -->
+        <div>
+          <label for="input-sheet-tab" class="block text-xs font-semibold text-slate-700 mb-1">
+            Nama Tab Sheet:
+          </label>
+          <input 
+            type="text" 
+            id="input-sheet-tab" 
+            value="DATA" 
+            placeholder="DATA" 
+            class="w-full text-xs font-mono px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-800"
+          />
+          <p class="text-[11px] text-slate-500 mt-1">
+            Sesuai petunjuk sistem, default tab yang digunakan adalah <strong>"DATA"</strong>.
+          </p>
+        </div>
+
+        <!-- Info Mapping Kolom Sheet -->
+        <div class="bg-blue-50/70 border border-blue-200/80 rounded-lg p-3 text-[11px] text-slate-600 space-y-1">
+          <div class="font-bold text-blue-900 flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Referensi Mapping Kolom Otomatis:
+          </div>
+          <ul class="list-disc list-inside space-y-0.5 text-slate-700 pl-1 font-mono text-[10.5px]">
+            <li><strong>Kolom C</strong>: ARTICLE (Nomor Article / Kode Barang)</li>
+            <li><strong>Kolom D</strong>: NAMA BARANG (Deskripsi Nama Barang)</li>
+            <li><strong>Kolom E</strong>: QTY (Jumlah Kuantitas Barang)</li>
+            <li><strong>Kolom Q</strong>: PINTU (contoh: "P08", "P11" diubah jadi 8, 11)</li>
+            <li><strong>Kolom R</strong>: TYPE ARMADA (contoh: "CDD", "Wingbox")</li>
+            <li><strong>Kolom S</strong>: PIC (Nama Petugas / Checker yang bertugas)</li>
+            <li><strong>Kolom T</strong>: CBM ARMADA (Kapasitas CBM, contoh: 15, 11, 37)</li>
+            <li><strong>Kolom F</strong>: ROUTE (berfungsi sebagai No. LC)</li>
+            <li><strong>Kolom K</strong>: STATUS 2 (filter regex /ST0\d+/)</li>
+            <li><strong>Kolom G</strong>: CUBE (volume CBM pallet - dipivot dan dijumlahkan per nomor ST)</li>
+            <li><strong>Kolom L & M</strong>: LOADED (status muat / jam muat)</li>
+          </ul>
+        </div>
+
+        <!-- Petunjuk Akses Publik -->
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[11px] text-amber-800">
+          <strong>PENTING:</strong> Pastikan spreadsheet Anda memiliki hak akses:
+          <span class="font-bold underline">"Siapa saja yang memiliki link dapat melihat"</span> (Anyone with the link can view), agar Google Visualization API dapat membaca datanya secara client-side.
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
+        <button id="btn-cancel-modal" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition">
+          Batal
+        </button>
+        <button id="btn-save-settings" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-semibold transition shadow-xs flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Simpan & Terapkan
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL OVERFLOW DATA PALLET                 -->
+  <!-- ========================================== -->
+  <div id="overflow-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+      <div class="bg-amber-600 text-white px-5 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h3 class="font-bold text-sm" id="overflow-door-title">Data Overflow Pallet Pintu</h3>
+        </div>
+        <button id="btn-close-overflow-modal" class="text-white/80 hover:text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="p-4 max-h-96 overflow-y-auto">
+        <p class="text-xs text-slate-600 mb-3">
+          Kapasitas staging pintu adalah 27 pallet. Baris-baris berikut melebihi batas 27 pallet dan tetap dicatat agar tidak ada data yang terlewat:
+        </p>
+        <div id="overflow-items-list" class="space-y-2 font-mono text-xs">
+          <!-- Item overflow dirender di sini -->
+        </div>
+      </div>
+      <div class="bg-slate-50 px-5 py-2.5 border-t border-slate-200 text-right">
+        <button id="btn-dismiss-overflow" class="px-4 py-1.5 bg-slate-800 text-white rounded text-xs font-semibold">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DETAIL STAGING & PIVOT BARANG (ARTICLE, NAMA BARANG, QTY)           -->
+  <!-- Ditampilkan saat kotak ST diklik, berada di tengah layar & tidak terpotong-->
+  <!-- ========================================================================= -->
+  <div id="staging-detail-modal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold font-mono text-xs">
+            LINE
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-mono font-black text-lg text-white tracking-tight" id="detail-st0-title">ST00193048</h3>
+              <span id="detail-rowcount-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                1 baris
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5" id="detail-location-subtitle">
+              PINTU 09 • Line 36 • Slot #01
+            </p>
+          </div>
+        </div>
+        <button id="btn-close-staging-modal" title="Tutup (Esc)" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Info Summary Strip -->
+      <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-slate-400 font-medium text-[10.5px]">Total Volume (Kolom G)</div>
+          <div class="font-mono font-black text-emerald-700 text-sm mt-0.5" id="detail-total-cbm">0.00 CBM</div>
+        </div>
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-slate-400 font-medium text-[10.5px]">Total QTY (Kolom E)</div>
+          <div class="font-mono font-black text-blue-700 text-sm mt-0.5" id="detail-total-qty">0 Pcs</div>
+        </div>
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-slate-400 font-medium text-[10.5px]">No. LC / Route (Kolom F)</div>
+          <div class="font-mono font-bold text-slate-800 text-xs mt-0.5 truncate" id="detail-lc-route">-</div>
+        </div>
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-slate-400 font-medium text-[10.5px]">Tipe Armada (Kolom R)</div>
+          <div class="font-semibold text-slate-800 text-xs mt-0.5 truncate" id="detail-armada">-</div>
+        </div>
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+          <div class="text-slate-400 font-medium text-[10.5px]">PIC Petugas (Kolom S)</div>
+          <div class="font-bold text-emerald-800 text-xs mt-0.5 truncate" id="detail-pic">-</div>
+        </div>
+      </div>
+
+      <!-- Search & Filter Bar dalam modal -->
+      <div class="px-5 py-2.5 bg-white border-b border-slate-100 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-700">Rincian Pivot Barang:</span>
+          <span id="detail-article-count-badge" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[11px] font-mono font-semibold">0 Article</span>
+        </div>
+        <div class="relative w-48 sm:w-64">
+          <input type="text" id="detail-search-input" placeholder="Cari Article / Nama Barang..." class="w-full pl-7 pr-2.5 py-1 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans" />
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 absolute left-2 top-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Modal Body (Tabel Pivot Article, Nama Barang, QTY, CBM) -->
+      <div class="p-5 overflow-y-auto flex-1 bg-white">
+        <div class="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-bold">
+                <th class="py-2.5 px-3 w-10 text-center font-mono">No</th>
+                <th class="py-2.5 px-3 font-mono">No. Article (Kolom C)</th>
+                <th class="py-2.5 px-3">Nama Barang (Kolom D)</th>
+                <th class="py-2.5 px-3 text-right font-mono">QTY (Kolom E)</th>
+                <th class="py-2.5 px-3 text-right font-mono">Volume (Kolom G)</th>
+              </tr>
+            </thead>
+            <tbody id="detail-articles-tbody" class="divide-y divide-slate-100">
+              <!-- Baris article dirender dinamis di sini -->
+            </tbody>
+            <tfoot>
+              <tr class="bg-slate-50 font-bold border-t-2 border-slate-300 text-slate-900">
+                <td colspan="3" class="py-2.5 px-3 text-right font-mono text-xs">TOTAL KESELURUHAN:</td>
+                <td id="detail-tfoot-qty" class="py-2.5 px-3 text-right font-mono text-blue-700 font-black">0</td>
+                <td id="detail-tfoot-cbm" class="py-2.5 px-3 text-right font-mono text-emerald-700 font-black">0 CBM</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between text-xs">
+        <span class="text-slate-400 italic">Tekan <kbd class="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] text-slate-600 shadow-2xs">Esc</kbd> atau klik di luar untuk menutup</span>
+        <button id="btn-dismiss-staging-modal" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer">
+          Tutup
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT LOGIC CLIENT-SIDE VANILLA       -->
+  <!-- ========================================== -->
+  <script>
+    /**
+     * =========================================================================
+     * KONFIGURASI DAN PEMETAAN KOLOM GOOGLE SPREADSHEET
+     * =========================================================================
+     * Gunakan referensi indeks kolom (0-based) berdasarkan posisi huruf di sheet:
+     * Kolom A = 0, B = 1, C = 2, D = 3, E = 4, F = 5, G = 6, ...
+     * Q = 16, R = 17.
+     * Jika letak kolom berubah di masa depan, sesuaikan konstanta di bawah ini.
+     */
+    const SHEET_COLUMNS = {
+      ARTICLE: 2,      // Kolom C: Nomor Article / Kode Barang
+      NAMA_BARANG: 3,  // Kolom D: Deskripsi Nama Barang
+      QTY: 4,          // Kolom E: Kuantitas Barang (QTY)
+      ROUTE_LC: 5,     // Kolom F: Header asli "ROUTE" -> Berfungsi sebagai Nomor LC (Loading Card)
+      CUBE_CBM: 6,     // Kolom G: Header asli "CUBE"  -> Volume CBM desimal
+      STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" -> Berisi kode ST0 (regex /ST0\d+/)
+      LOADED_L: 11,    // Kolom L: Data Loading / Jam Load / Status Muat
+      LOADED_M: 12,    // Kolom M: Data Loading / Checker / Status Muat
+      PINTU: 16,       // Kolom Q: Header asli "PINTU" -> Nomor pintu outbound ("P01", "P11", "P8")
+      TYPE_ARMADA: 17, // Kolom R: Header asli "TYPE ARMADA" -> Jenis armada ("CDD", "Wingbox", dll)
+      PIC: 18,         // Kolom S: Header asli "PIC" -> Nama Petugas / Checker yang bertugas
+      CBM_ARMADA: 19   // Kolom T: Header asli "CBM ARMADA" -> Nilai CBM armada (misal: 15, 11, 24, 37)
+    };
+
+    /**
+     * Standar Kapasitas Muatan CBM per Jenis Armada (Fallback jika Kolom T tidak terisi):
+     * 1. CDD LONG : 15 CBM
+     * 2. CONT-20 : 24 CBM
+     * 3. CONT-40 : 48 CBM
+     * 4. FUSO : 27 CBM
+     * 5. WINGBOX : 37 CBM
+     * 6. CDE LONG : 11 CBM
+     */
+    const ARMADA_CAPACITIES = {
+      'CDD LONG': 15,
+      'CONT-20': 24,
+      'CONT-40': 48,
+      'FUSO': 27,
+      'WINGBOX': 37,
+      'CDE LONG': 11
+    };
+
+    /**
+     * Mengambil kapasitas muatan CBM berdasarkan jenis armada
+     */
+    function getArmadaCapacity(armadaStr) {
+      if (!armadaStr) return 15;
+      const upper = String(armadaStr).toUpperCase().trim();
+      
+      // Match exact atau awalan
+      for (const [name, cap] of Object.entries(ARMADA_CAPACITIES)) {
+        if (upper === name || upper.startsWith(name)) {
+          return cap;
+        }
+      }
+      // Substring match fleksibel untuk penulisan armada di lapangan
+      if (upper.includes('CONT-40') || upper.includes('CONT 40') || upper.includes('CONTAINER 40') || upper.includes('40FT') || upper.includes('40 FT')) return 48;
+      if (upper.includes('CONT-20') || upper.includes('CONT 20') || upper.includes('CONTAINER 20') || upper.includes('20FT') || upper.includes('20 FT')) return 24;
+      if (upper.includes('WINGBOX') || upper.includes('TRONTON WING') || upper.includes('WING')) return 37;
+      if (upper.includes('FUSO')) return 27;
+      if (upper.includes('CDE LONG') || upper.includes('ENGKEL LONG')) return 11;
+      if (upper.includes('CDD LONG') || upper.includes('CDD LONG CHASSIS')) return 15;
+      if (upper.includes('CDE') || upper.includes('ENGKEL')) return 11;
+      if (upper.includes('CDD')) return 15;
+      return 15; // default fallback jika tipe belum terdaftar
+    }
+
+    /**
+     * Mengambil kapasitas muatan CBM Pintu:
+     * UTAMA: Diambil langsung dari data pada Kolom T (CBM ARMADA).
+     * FALLBACK: Jika Kolom T kosong, diambil dari standar armada (CDD LONG: 15, CDE LONG: 11, dll).
+     */
+    function getDoorCapacity(doorData) {
+      if (doorData && typeof doorData.cbmArmada === 'number' && doorData.cbmArmada > 0) {
+        return doorData.cbmArmada;
+      }
+      return getArmadaCapacity(doorData ? doorData.armada : '');
+    }
+
+    // Daftar pintu yang ditampilkan pada dashboard (Pintu 08 sampai 17 -> Line 33 sampai Line 62)
+    const TARGET_DOORS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+    const PALLETS_PER_DOOR = 27; // 3 staging x 9 baris pallet
+    const REFRESH_INTERVAL_SEC = 30; // Auto-refresh setiap 30 detik
+
+    // =========================================================================
+    // STATE APLIKASI
+    // =========================================================================
+    const state = {
+      mode: localStorage.getItem('dock_mode') || 'demo', // 'live' atau 'demo'
+      sheetUrlOrId: localStorage.getItem('dock_sheet_url_or_id') || '',
+      sheetTabName: localStorage.getItem('dock_sheet_tab') || 'DATA',
+      countdown: REFRESH_INTERVAL_SEC,
+      lastUpdated: null,
+      isFetching: false,
+      dataDoors: {},       // Door mapping: { 8: { armada: '', pallets: [], overflow: [] } }
+      stats: {
+        activeDoors: 0,
+        filledPallets: 0,
+        totalCapacity: TARGET_DOORS.length * PALLETS_PER_DOOR,
+        totalCbm: 0
+      },
+      zoomLevel: parseFloat(localStorage.getItem('dock_zoom_level') || '1.0')
+    };
+
+    /**
+     * Mengatur zoom level tampilan dermaga
+     */
+    function applyZoom(newZoom) {
+      state.zoomLevel = Math.max(0.7, Math.min(1.5, Math.round(newZoom * 100) / 100));
+      localStorage.setItem('dock_zoom_level', state.zoomLevel.toString());
+      
+      const container = document.getElementById('doors-container');
+      const label = document.getElementById('zoom-label');
+      if (label) {
+        label.textContent = `${Math.round(state.zoomLevel * 100)}%`;
+      }
+      if (container) {
+        container.style.zoom = state.zoomLevel;
+      }
+    }
+
+    // =========================================================================
+    // DATA DEMO SIMULASI OUTBOUND
+    // Menghasilkan data realistis yang cocok dengan format sheet yang diminta
+    // =========================================================================
+    function generateRealisticDemoData() {
+      // 6 Armada Standar sesuai instruksi:
+      // 1. CDD LONG: 15 CBM, 2. CONT-20: 24 CBM, 3. CONT-40: 48 CBM, 4. FUSO: 27 CBM, 5. WINGBOX: 37 CBM, 6. CDE LONG: 11 CBM
+      const armadas = ['CDD LONG', 'WINGBOX', 'FUSO', 'CONT-20', 'CONT-40', 'CDE LONG', 'CDD LONG', 'WINGBOX', 'FUSO', 'CONT-20'];
+      const picList = ['Bambang H.', 'Dedi S.', 'Ahmad Fauzi', 'Agus Wibowo', 'Hendra P.', 'Rian Pratama', 'Eko Saputra', 'Fajar N.', 'Doni K.', 'Tri Wahyudi'];
+      const catalog = [
+        { article: '10042819', name: 'MINYAK GORENG SAWIT POUCH 2L' },
+        { article: '10051120', name: 'GULA PASIR KRISTAL PUTIH 1KG' },
+        { article: '10089234', name: 'TEPUNG TERIGU SERBAGUNA 1KG' },
+        { article: '10124509', name: 'SUSU KENTAL MANIS CAN 370G' },
+        { article: '10239088', name: 'KOPI BUBUK INSTAN 20X30G' },
+        { article: '10348712', name: 'MIE INSTANT GORENG SPESIAL 85G (KRT)' },
+        { article: '10492831', name: 'DETERJEN BUBUK CONCENTRATE 800G' },
+        { article: '10582910', name: 'SABUN MANDI CAIR POUCH 450ML' },
+        { article: '10673419', name: 'SHAMPOO ANTI KETOMBE BTL 340ML' },
+        { article: '10781290', name: 'PASTA GIGI HERBAL PROTECTION 190G' },
+        { article: '10892341', name: 'TISSUE FACIAL SOFT PACK 250S' },
+        { article: '10901239', name: 'AIR MINERAL BOTOL 600ML (KRT)' },
+      ];
+      const demoRows = [];
+
+      TARGET_DOORS.forEach((doorNum, index) => {
+        const armada = armadas[index % armadas.length];
+        const pic = picList[index % picList.length];
+        const armadaCap = getArmadaCapacity(armada);
+        const lcNumber = (doorNum === 8) ? '260906L053' : `260905L${String(60 + index * 4).padStart(3, '0')}`;
+        
+        // Pintu 8: Sesuai contoh spesifik dari user:
+        // Armada: CDD LONG (Kolom T: 15), LC: 260906L053, Total Stage: 2.71 CBM, Belum ST: 7.85 CBM (Sisa: 10.56 CBM)
+        if (doorNum === 8) {
+          const p8StagingList = [
+            { st: 'ST00192825', cbm: 1.50, qty: 110, loaded: true, time: '09:40' },
+            { st: 'ST00192826', cbm: 1.21, qty: 85, loaded: false, time: '' }
+          ]; // Total staging = 2.71 CBM (Loaded = 1.50 CBM)
+
+          p8StagingList.forEach((item, sIdx) => {
+            const rowArr = [];
+            const cat = catalog[sIdx % catalog.length];
+            rowArr[SHEET_COLUMNS.ARTICLE] = cat.article;
+            rowArr[SHEET_COLUMNS.NAMA_BARANG] = cat.name;
+            rowArr[SHEET_COLUMNS.QTY] = item.qty;
+            rowArr[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
+            rowArr[SHEET_COLUMNS.CUBE_CBM] = item.cbm;
+            rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${item.st}-OK`;
+            rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
+            rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
+            rowArr[SHEET_COLUMNS.PINTU] = 'P08';
+            rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
+            rowArr[SHEET_COLUMNS.PIC] = pic;
+            rowArr[SHEET_COLUMNS.CBM_ARMADA] = 15; // Kolom T: 15
+            demoRows.push(rowArr);
+          });
+
+          // Baris Belum ST untuk Pintu 08: total 7.85 CBM (sesuai contoh user: total stage 2.71 dan belum st 7.85)
+          const p8Unassigned = [
+            { article: '10781290', name: 'PASTA GIGI HERBAL PROTECTION 190G', qty: 240, cbm: 4.50 },
+            { article: '10892341', name: 'TISSUE FACIAL SOFT PACK 250S', qty: 180, cbm: 3.35 }
+          ]; // 4.50 + 3.35 = 7.85 CBM
+          p8Unassigned.forEach(un => {
+            const unRow = [];
+            unRow[SHEET_COLUMNS.ARTICLE] = un.article;
+            unRow[SHEET_COLUMNS.NAMA_BARANG] = un.name;
+            unRow[SHEET_COLUMNS.QTY] = un.qty;
+            unRow[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
+            unRow[SHEET_COLUMNS.CUBE_CBM] = un.cbm;
+            unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kosong / belum ada ST
+            unRow[SHEET_COLUMNS.LOADED_L] = '';
+            unRow[SHEET_COLUMNS.LOADED_M] = '';
+            unRow[SHEET_COLUMNS.PINTU] = 'P08';
+            unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
+            unRow[SHEET_COLUMNS.PIC] = pic;
+            unRow[SHEET_COLUMNS.CBM_ARMADA] = 15; // Kolom T: 15
+            demoRows.push(unRow);
+          });
+
+          return; // Selesai untuk pintu 8
+        }
+
+        // Pintu 9: Sertakan contoh ST00193048 dengan WINGBOX (37 CBM di Kolom T)
+        if (doorNum === 9) {
+          const screenshotSt = 'ST00193048';
+          const p9Data = [
+            { cbm: 1.00, qty: 150, cat: catalog[5], loaded: true, time: '10:15' },
+            { cbm: 0.86, qty: 90, cat: catalog[4], loaded: true, time: '10:20' },
+            { cbm: 0.60, qty: 60, cat: catalog[3], loaded: false, time: '' }
+          ];
+          p9Data.forEach(item => {
+            const rowArr = [];
+            rowArr[SHEET_COLUMNS.ARTICLE] = item.cat.article;
+            rowArr[SHEET_COLUMNS.NAMA_BARANG] = item.cat.name;
+            rowArr[SHEET_COLUMNS.QTY] = item.qty;
+            rowArr[SHEET_COLUMNS.ROUTE_LC] = '260906L058';
+            rowArr[SHEET_COLUMNS.CUBE_CBM] = item.cbm;
+            rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${screenshotSt}-OK`;
+            rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
+            rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
+            rowArr[SHEET_COLUMNS.PINTU] = 'P09';
+            rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
+            rowArr[SHEET_COLUMNS.PIC] = pic;
+            rowArr[SHEET_COLUMNS.CBM_ARMADA] = 37; // Kolom T: 37
+            demoRows.push(rowArr);
+          });
+        }
+
+        // Generate nomor staging lainnya per pintu (beberapa memiliki multiple baris sheet untuk menguji pivot)
+        const uniqueStCount = [14, 27, 20, 16, 24, 15, 22, 18, 20, 17][index % 10] || 16;
+        const startIndex = (doorNum === 9) ? 2 : 1;
+
+        for (let i = startIndex; i <= uniqueStCount; i++) {
+          const st0Code = `ST0019${String(1700 + index * 35 + i).padStart(4, '0')}`;
+          
+          // Beberapa ST nomor memiliki 2 baris sheet untuk simulasi pivot
+          const rowsForThisSt = (i % 3 === 0) ? 2 : 1;
+          const targetTotalCbm = (0.5 + ((i * 13) % 210) / 100);
+          const isThisLoaded = (i % 2 === 0);
+
+          for (let r = 0; r < rowsForThisSt; r++) {
+            const rowArr = [];
+            const portion = (targetTotalCbm / rowsForThisSt);
+            const itemCat = catalog[(i + r * 3) % catalog.length];
+            const itemQty = Math.round(20 + ((i * 7 + r * 15) % 180));
+
+            rowArr[SHEET_COLUMNS.ARTICLE] = itemCat.article;
+            rowArr[SHEET_COLUMNS.NAMA_BARANG] = itemCat.name;
+            rowArr[SHEET_COLUMNS.QTY] = itemQty;
+            rowArr[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
+            rowArr[SHEET_COLUMNS.CUBE_CBM] = parseFloat(portion.toFixed(2));
+            rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${st0Code}-OK`;
+            rowArr[SHEET_COLUMNS.LOADED_L] = isThisLoaded ? 'LOADED' : '';
+            rowArr[SHEET_COLUMNS.LOADED_M] = isThisLoaded ? `10:${String((i * 4) % 55).padStart(2, '0')}` : '';
+            rowArr[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`;
+            rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
+            rowArr[SHEET_COLUMNS.PIC] = pic;
+            rowArr[SHEET_COLUMNS.CBM_ARMADA] = armadaCap; // Kolom T: Kapasitas CBM Armada
+            demoRows.push(rowArr);
+          }
+        }
+
+        // Tambahkan baris dengan Kolom K kosong / belum ada ST untuk demonstrasi CBM belum staging
+        if (index % 2 === 1) {
+          const unassignedSamples = [
+            { article: '10781290', name: 'PASTA GIGI HERBAL PROTECTION 190G', qty: 65, cbm: 0.95 },
+            { article: '10892341', name: 'TISSUE FACIAL SOFT PACK 250S', qty: 110, cbm: 1.45 }
+          ];
+          unassignedSamples.forEach(un => {
+            const unRow = [];
+            unRow[SHEET_COLUMNS.ARTICLE] = un.article;
+            unRow[SHEET_COLUMNS.NAMA_BARANG] = un.name;
+            unRow[SHEET_COLUMNS.QTY] = un.qty;
+            unRow[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
+            unRow[SHEET_COLUMNS.CUBE_CBM] = un.cbm;
+            unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kolom K kosong / belum ada ST
+            unRow[SHEET_COLUMNS.LOADED_L] = '';
+            unRow[SHEET_COLUMNS.LOADED_M] = '';
+            unRow[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`;
+            unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
+            unRow[SHEET_COLUMNS.PIC] = pic;
+            unRow[SHEET_COLUMNS.CBM_ARMADA] = armadaCap; // Kolom T: Kapasitas CBM Armada
+            demoRows.push(unRow);
+          });
+        }
+      });
+
+      // Tambahkan baris dengan kolom Q kosong (harus di-skip)
+      demoRows.push({
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L999',
+        [SHEET_COLUMNS.STATUS_2]: 'ST00199999',
+        [SHEET_COLUMNS.PINTU]: '', // Q kosong -> harus di-skip
+      });
+
+      return demoRows;
+    }
+
+    // =========================================================================
+    // PARSING & NORMALISASI DATA (SESUAI ATURAN PROMPT)
+    // =========================================================================
+    /**
+     * Membaca nilai dari baris gviz/array
+     */
+    function getCellRawValue(row, colIndex) {
+      if (!row) return '';
+      if (Array.isArray(row)) {
+        return row[colIndex] ?? '';
+      }
+      // Format baris gviz: row.c adalah array objek { v: ..., f: ... }
+      if (row.c && Array.isArray(row.c)) {
+        const cell = row.c[colIndex];
+        if (!cell) return '';
+        return cell.v ?? cell.f ?? '';
+      }
+      return '';
+    }
+
+    /**
+     * Format angka CBM (contoh: 3 -> "3 CBM", 2.45 -> "2.45 CBM")
+     */
+    function formatCbm(val) {
+      if (val === undefined || val === null || isNaN(val)) return '0 CBM';
+      const num = Number(val);
+      const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
+      return `${rounded} CBM`;
+    }
+
+    /**
+     * Format angka desimal tanpa satuan teks CBM (contoh: 10.56)
+     */
+    function formatNumber(val) {
+      if (val === undefined || val === null || isNaN(val)) return '0';
+      const num = Number(val);
+      const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
+      return `${rounded}`;
+    }
+
+    /**
+     * Memproses seluruh baris data dari Google Sheet atau Demo
+     * Data nomor staging (ST0...) dipivot per pintu: hanya muncul 1 perwakilan,
+     * dan total CBM (kolom G) diakumulasikan.
+     * Rincian barang dipivot berdasarkan nomor article (kolom C), nama barang (kolom D), dan QTY (kolom E).
+     */
+    function processRawSheetRows(rows) {
+      // Inisialisasi struktur penyimpanan per pintu
+      const groupedDoors = {};
+      // Map untuk pivot dan agregasi berdasarkan nomor ST0 per pintu: Map<st0Token, object>
+      const doorStagingMaps = {};
+
+      TARGET_DOORS.forEach(doorNum => {
+        groupedDoors[doorNum] = {
+          doorNumber: doorNum,
+          armada: '',
+          pic: '',
+          lc: '',
+          cbmArmada: 0, // Ambil data pada Kolom T
+          pallets: [],
+          overflow: [],
+          unassignedCbm: 0,
+          unassignedQty: 0,
+          unassignedRowCount: 0,
+          unassignedRows: [],
+          unassignedArticlesMap: new Map(),
+          unassignedArticles: [],
+          // Data Loaded (dimuat) berdasarkan Kolom L dan Kolom M
+          loadedCbm: 0,
+          loadedQty: 0,
+          loadedRowCount: 0,
+          loadedArticlesMap: new Map(),
+          loadedArticles: []
+        };
+        doorStagingMaps[doorNum] = new Map();
+      });
+
+      if (!rows || !Array.isArray(rows)) {
+        return groupedDoors;
+      }
+
+      // Loop seluruh baris mulai dari indeks 0 (atau baris 2 sheet jika baris 1 adalah header)
+      rows.forEach((row, rowIndex) => {
+        // Aturan 2: Cek apakah kolom Q terisi. Jika kosong/null/blank, skip baris ini sepenuhnya.
+        const qRaw = String(getCellRawValue(row, SHEET_COLUMNS.PINTU) || '').trim();
+        if (!qRaw) {
+          return; // Skip baris dengan Q kosong
+        }
+
+        // Cek jika baris ini adalah header teks yang ikut terbaca (misal kata "PINTU")
+        if (qRaw.toUpperCase() === 'PINTU') {
+          return; // Skip header
+        }
+
+        // Aturan 3: Normalisasi nilai kolom Q menjadi angka murni
+        // Contoh: "P01" -> 1, "P11" -> 11, "P8" -> 8, "P15" -> 15
+        const doorDigits = qRaw.match(/\d+/);
+        if (!doorDigits) {
+          return; // Bukan format pintu valid
+        }
+        const doorNum = parseInt(doorDigits[0], 10);
+
+        // Hanya proses pintu yang ada dalam jangkauan dashboard (PINTU 8 sampai 15)
+        if (!TARGET_DOORS.includes(doorNum)) {
+          return;
+        }
+
+        // Ekstrak Kolom F (LC/ROUTE), Kolom R (TYPE_ARMADA), Kolom S (PIC), dan Kolom T (CBM ARMADA) yang berkaitan dengan pintu
+        const lcRoute = String(getCellRawValue(row, SHEET_COLUMNS.ROUTE_LC) || '').trim();
+        const armadaRaw = String(getCellRawValue(row, SHEET_COLUMNS.TYPE_ARMADA) || '').trim();
+        const picRaw = String(getCellRawValue(row, SHEET_COLUMNS.PIC) || '').trim();
+        const cbmArmadaRaw = getCellRawValue(row, SHEET_COLUMNS.CBM_ARMADA);
+
+        if (armadaRaw && !groupedDoors[doorNum].armada) {
+          groupedDoors[doorNum].armada = armadaRaw;
+        }
+        if (picRaw && !groupedDoors[doorNum].pic) {
+          groupedDoors[doorNum].pic = picRaw;
+        }
+        if (lcRoute && lcRoute !== '-' && !groupedDoors[doorNum].lc) {
+          groupedDoors[doorNum].lc = lcRoute;
+        }
+        if (!groupedDoors[doorNum].cbmArmada && cbmArmadaRaw !== undefined && cbmArmadaRaw !== null && cbmArmadaRaw !== '') {
+          let cbmParsed = 0;
+          if (typeof cbmArmadaRaw === 'number' && !isNaN(cbmArmadaRaw)) {
+            cbmParsed = cbmArmadaRaw;
+          } else if (typeof cbmArmadaRaw === 'string') {
+            const numMatch = cbmArmadaRaw.replace(',', '.').match(/[\d.]+/);
+            if (numMatch) {
+              const p = parseFloat(numMatch[0]);
+              cbmParsed = isNaN(p) ? 0 : p;
+            }
+          }
+          if (cbmParsed > 0) {
+            groupedDoors[doorNum].cbmArmada = cbmParsed;
+          }
+        }
+
+        // Ekstrak Kolom G (CUBE_CBM)
+        const cbmRaw = getCellRawValue(row, SHEET_COLUMNS.CUBE_CBM);
+        let cbmVal = 0;
+        if (typeof cbmRaw === 'number') {
+          cbmVal = cbmRaw;
+        } else if (typeof cbmRaw === 'string') {
+          const parsed = parseFloat(cbmRaw.replace(',', '.'));
+          cbmVal = isNaN(parsed) ? 0 : parsed;
+        }
+
+        // Ekstrak Kolom C (ARTICLE), Kolom D (NAMA BARANG), Kolom E (QTY)
+        const articleRaw = String(getCellRawValue(row, SHEET_COLUMNS.ARTICLE) || '').trim();
+        const namaBarangRaw = String(getCellRawValue(row, SHEET_COLUMNS.NAMA_BARANG) || '').trim();
+        const qtyRaw = getCellRawValue(row, SHEET_COLUMNS.QTY);
+        let qtyVal = 0;
+        if (typeof qtyRaw === 'number') {
+          qtyVal = qtyRaw;
+        } else if (typeof qtyRaw === 'string') {
+          const parsed = parseFloat(qtyRaw.replace(/\./g, '').replace(',', '.'));
+          qtyVal = isNaN(parsed) ? 0 : parsed;
+        }
+
+        // Evaluasi Kolom L & Kolom M untuk status MUAT (LOADED):
+        // Sesuai instruksi user: "Loaded nya ambil data cbm berdasarkan kolom L dan M jumlah cbm nya pada kolom G"
+        const valL = getCellRawValue(row, SHEET_COLUMNS.LOADED_L);
+        const valM = getCellRawValue(row, SHEET_COLUMNS.LOADED_M);
+        const isRowLoaded = (valL !== null && valL !== undefined && String(valL).trim() !== '') ||
+                            (valM !== null && valM !== undefined && String(valM).trim() !== '');
+
+        if (isRowLoaded) {
+          groupedDoors[doorNum].loadedCbm += cbmVal;
+          groupedDoors[doorNum].loadedQty += qtyVal;
+          groupedDoors[doorNum].loadedRowCount += 1;
+
+          const loadArtKey = `${articleRaw || '-'}___${namaBarangRaw || '-'}`;
+          const lMap = groupedDoors[doorNum].loadedArticlesMap;
+          if (lMap.has(loadArtKey)) {
+            const item = lMap.get(loadArtKey);
+            item.qty += qtyVal;
+            item.cbm += cbmVal;
+            item.rowCount += 1;
+            item.rows.push(rowIndex + 2);
+          } else {
+            lMap.set(loadArtKey, {
+              article: articleRaw || '-',
+              namaBarang: namaBarangRaw || '-',
+              qty: qtyVal,
+              cbm: cbmVal,
+              valL: String(valL || '').trim(),
+              valM: String(valM || '').trim(),
+              rowCount: 1,
+              rows: [rowIndex + 2]
+            });
+          }
+        }
+
+        // Aturan 4: Cek kolom K (STATUS 2): ekstrak token yang match regex /ST0\d+/
+        const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
+        const st0Match = kRaw.match(/ST0\d+/);
+        if (!st0Match) {
+          // Keterangan yang belum ada tulisannya atau kosong pada Kolom K:
+          // Akumulasikan nilai CBM (Kolom G), QTY (Kolom E), dan data article untuk pintu ini
+          groupedDoors[doorNum].unassignedCbm += cbmVal;
+          groupedDoors[doorNum].unassignedQty += qtyVal;
+          groupedDoors[doorNum].unassignedRowCount += 1;
+          groupedDoors[doorNum].unassignedRows.push(rowIndex + 2);
+
+          const artKey = `${articleRaw || '-'}___${namaBarangRaw || '-'}`;
+          const unMap = groupedDoors[doorNum].unassignedArticlesMap;
+          if (unMap.has(artKey)) {
+            const artItem = unMap.get(artKey);
+            artItem.qty += qtyVal;
+            artItem.cbm += cbmVal;
+            artItem.rowCount += 1;
+            artItem.rows.push(rowIndex + 2);
+          } else {
+            unMap.set(artKey, {
+              article: articleRaw || '-',
+              namaBarang: namaBarangRaw || '-',
+              qty: qtyVal,
+              cbm: cbmVal,
+              rowCount: 1,
+              rows: [rowIndex + 2]
+            });
+          }
+          return; // Skip dari assign pallet slot
+        }
+        const st0Token = st0Match[0]; // Ambil token ST0 unik
+
+        // PIVOT & AGREGASI: Cukup 1 perwakilan per nomor ST per pintu, CBM dari kolom G dijumlahkan
+        const doorMap = doorStagingMaps[doorNum];
+        let stEntry;
+        if (doorMap.has(st0Token)) {
+          stEntry = doorMap.get(st0Token);
+          stEntry.cbm += cbmVal;
+          stEntry.totalQty = (stEntry.totalQty || 0) + qtyVal;
+          stEntry.rowCount += 1;
+          stEntry.rows.push(rowIndex + 2);
+          if ((!stEntry.lc || stEntry.lc === '-') && lcRoute) {
+            stEntry.lc = lcRoute;
+          }
+        } else {
+          stEntry = {
+            st0: st0Token,
+            lc: lcRoute || '-',
+            cbm: cbmVal,
+            totalQty: qtyVal,
+            rowCount: 1,
+            doorNum: doorNum,
+            rows: [rowIndex + 2],
+            articlesMap: new Map()
+          };
+          doorMap.set(st0Token, stEntry);
+        }
+
+        // Agregasi pivot per article (Kolom C) + nama barang (Kolom D) di dalam ST ini
+        const artKey = `${articleRaw || '-'}___${namaBarangRaw || '-'}`;
+        if (stEntry.articlesMap.has(artKey)) {
+          const artItem = stEntry.articlesMap.get(artKey);
+          artItem.qty += qtyVal;
+          artItem.cbm += cbmVal;
+          artItem.rowCount += 1;
+          artItem.rows.push(rowIndex + 2);
+        } else {
+          stEntry.articlesMap.set(artKey, {
+            article: articleRaw || '-',
+            namaBarang: namaBarangRaw || '-',
+            qty: qtyVal,
+            cbm: cbmVal,
+            rowCount: 1,
+            rows: [rowIndex + 2]
+          });
+        }
+      });
+
+      // Masukkan nomor staging unik yang sudah dipivot ke slot 1-27 dan overflow
+      TARGET_DOORS.forEach(doorNum => {
+        groupedDoors[doorNum].unassignedArticles = Array.from(groupedDoors[doorNum].unassignedArticlesMap.values());
+        groupedDoors[doorNum].loadedArticles = Array.from(groupedDoors[doorNum].loadedArticlesMap.values());
+
+        const uniqueStagings = Array.from(doorStagingMaps[doorNum].values()).map(st => {
+          st.articles = Array.from(st.articlesMap.values());
+          return st;
+        });
+        if (!groupedDoors[doorNum].lc && uniqueStagings.length > 0) {
+          const found = uniqueStagings.find(s => s.lc && s.lc !== '-');
+          if (found) {
+            groupedDoors[doorNum].lc = found.lc;
+          }
+        }
+        // Slot 1-27
+        groupedDoors[doorNum].pallets = uniqueStagings.slice(0, PALLETS_PER_DOOR);
+        // Overflow (>27)
+        groupedDoors[doorNum].overflow = uniqueStagings.slice(PALLETS_PER_DOOR);
+      });
+
+      return groupedDoors;
+    }
+
+    // =========================================================================
+    // FETCH DATA CLIENT-SIDE DARI GOOGLE SHEETS (GVIZ ENDPOINT)
+    // =========================================================================
+    /**
+     * Ekstrak Spreadsheet ID dari link atau string murni
+     */
+    function extractSpreadsheetId(input) {
+      if (!input) return '';
+      const trimmed = input.trim();
+      // Regex mencocokkan ID dari URL Google Docs: /d/([a-zA-Z0-9-_]+)
+      const match = trimmed.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+      // Jika input hanya ID langsung tanpa URL
+      if (/^[a-zA-Z0-9-_]{20,}$/.test(trimmed)) {
+        return trimmed;
+      }
+      return trimmed;
+    }
+
+    /**
+     * Ambil data via gviz JSON-P endpoint dan parse menjadi array of rows
+     */
+    async function fetchFromGoogleSheets() {
+      const sheetId = extractSpreadsheetId(state.sheetUrlOrId);
+      if (!sheetId) {
+        throw new Error('Google Spreadsheet ID belum dimasukkan. Buka menu Google Sheet di pojok kanan atas untuk mengisi ID.');
+      }
+
+      const sheetTab = encodeURIComponent(state.sheetTabName || 'DATA');
+      // Endpoint Google Visualization API
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${sheetTab}`;
+
+      const response = await fetch(gvizUrl, {
+        method: 'GET',
+        cache: 'no-cache'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gagal mengambil data dari Google Sheets (HTTP ${response.status}: ${response.statusText}). Pastikan spreadsheet diset ke "Anyone with the link can view".`);
+      }
+
+      const rawText = await response.text();
+      
+      // Parse response JSON-P (strip prefix/suffix function wrapper-nya)
+      // Format khas: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+      const startIdx = rawText.indexOf('(');
+      const endIdx = rawText.lastIndexOf(')');
+
+      if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+        throw new Error('Format response dari Google Visualization API tidak valid atau sheet tidak dapat diakses.');
+      }
+
+      const jsonString = rawText.substring(startIdx + 1, endIdx);
+      const parsedJson = JSON.parse(jsonString);
+
+      if (parsedJson.status === 'error') {
+        const errMsg = parsedJson.errors && parsedJson.errors[0] ? parsedJson.errors[0].message : 'Error pada query Google Sheets.';
+        throw new Error(`Google Sheets Error: ${errMsg}`);
+      }
+
+      if (!parsedJson.table || !Array.isArray(parsedJson.table.rows)) {
+        throw new Error('Tabel data kosong atau format kolom tidak ditemukan.');
+      }
+
+      return parsedJson.table.rows;
+    }
+
+    // =========================================================================
+    // RENDER VISUAL DASHBOARD
+    // =========================================================================
+    /**
+     * Format nomor pintu dengan leading zero (misal 8 -> "PINTU 08")
+     */
+    function formatDoorLabel(doorNum) {
+      return `PINTU ${doorNum < 10 ? '0' + doorNum : doorNum}`;
+    }
+
+    /**
+     * Menghitung dan memperbarui statistik header
+     */
+    function updateHeaderStats() {
+      let totalFilled = 0;
+      let totalCbm = 0;
+      let totalUnassignedCbm = 0;
+      let totalLoadedCbm = 0;
+      let activeDoorsCount = 0;
+
+      TARGET_DOORS.forEach(doorNum => {
+        const doorData = state.dataDoors[doorNum];
+        if (doorData) {
+          const filled = doorData.pallets.length;
+          totalFilled += filled;
+          if (filled > 0 || doorData.armada) {
+            activeDoorsCount++;
+          }
+          doorData.pallets.forEach(p => {
+            totalCbm += (p.cbm || 0);
+          });
+          if (doorData.overflow) {
+            doorData.overflow.forEach(p => {
+              totalCbm += (p.cbm || 0);
+            });
+          }
+          totalUnassignedCbm += (doorData.unassignedCbm || 0);
+          totalLoadedCbm += (doorData.loadedCbm || 0);
+        }
+      });
+
+      state.stats.filledPallets = totalFilled;
+      state.stats.totalCbm = totalCbm;
+      state.stats.activeDoors = activeDoorsCount;
+
+      const percentage = ((totalFilled / state.stats.totalCapacity) * 100).toFixed(1);
+
+      document.getElementById('stat-active-doors').textContent = `${activeDoorsCount} Pintu Aktif`;
+      document.getElementById('stat-filled-pallets').textContent = `${totalFilled} / ${state.stats.totalCapacity} (${percentage}%)`;
+      document.getElementById('stat-total-cbm').textContent = formatCbm(totalCbm);
+      
+      const unassignedEl = document.getElementById('stat-unassigned-cbm');
+      if (unassignedEl) {
+        unassignedEl.textContent = formatCbm(totalUnassignedCbm);
+      }
+
+      const loadedEl = document.getElementById('stat-loaded-cbm');
+      if (loadedEl) {
+        loadedEl.textContent = formatCbm(totalLoadedCbm);
+      }
+      
+      const badgeSource = document.getElementById('source-badge');
+      if (state.mode === 'live') {
+        badgeSource.textContent = 'Google Sheet (Live)';
+        badgeSource.className = 'px-2 py-0.5 rounded font-mono font-medium text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200';
+      } else {
+        badgeSource.textContent = 'Demo Simulation (Sample Data)';
+        badgeSource.className = 'px-2 py-0.5 rounded font-mono font-medium text-[11px] bg-blue-50 text-blue-700 border border-blue-200';
+      }
+      document.getElementById('sheet-name-badge').textContent = `Tab: "${state.sheetTabName}"`;
+    }
+
+    /**
+     * Render komponen 10 Pintu dan slot pallet (Line 33 sampai Line 62)
+     */
+    function renderDoorsUI() {
+      const container = document.getElementById('doors-container');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      TARGET_DOORS.forEach(doorNum => {
+        const doorData = state.dataDoors[doorNum] || { armada: '', pallets: [], overflow: [] };
+        const pallets = doorData.pallets;
+        const overflowCount = doorData.overflow.length;
+        const armadaLabel = doorData.armada || 'BELUM ADA ARMADA';
+
+        // Hitung total CBM per pintu
+        let doorTotalCbm = 0;
+        pallets.forEach(p => { doorTotalCbm += (p.cbm || 0); });
+        doorData.overflow.forEach(p => { doorTotalCbm += (p.cbm || 0); });
+
+        // Buat elemen kolom Pintu (diberi min-w 195px agar 3 kolom staging memiliki ruang cukup)
+        const doorCol = document.createElement('div');
+        doorCol.className = 'flex flex-col bg-white rounded-lg shadow-sm border-2 border-slate-900 overflow-hidden min-w-[195px]';
+        doorCol.id = `door-card-${doorNum}`;
+
+        // Header Pintu: "PINTU XX" dengan border hitam tebal & tipe armada
+        const headerEl = document.createElement('div');
+        headerEl.className = 'bg-white p-2.5 text-center border-b-2 border-slate-900 flex flex-col items-center justify-center';
+        
+        const doorTitle = document.createElement('div');
+        doorTitle.className = 'font-black text-base text-slate-950 tracking-wider';
+        doorTitle.textContent = formatDoorLabel(doorNum);
+
+        // Nomor LC di bawah tulisan pintu (contoh: No. LC: 260905L060)
+        const lcVal = doorData.lc || (pallets[0] && pallets[0].lc !== '-' ? pallets[0].lc : '-');
+        const lcLabel = document.createElement('div');
+        lcLabel.className = 'mt-0.5 px-2 py-0.5 bg-blue-50 text-blue-900 border border-blue-200/90 text-[11px] font-mono font-bold rounded tracking-tight max-w-full truncate shadow-2xs';
+        lcLabel.innerHTML = `<span class="text-[9.5px] font-semibold text-slate-500 uppercase mr-1">No. LC:</span>${lcVal}`;
+        lcLabel.title = `Nomor LC (Loading Card) / Route: ${lcVal}`;
+
+        const armadaBadge = document.createElement('div');
+        armadaBadge.className = doorData.armada 
+          ? 'mt-1 px-2 py-0.5 bg-slate-900 text-amber-300 text-[11px] font-bold rounded tracking-wide max-w-full truncate'
+          : 'mt-1 px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-medium rounded italic border border-slate-200';
+        armadaBadge.textContent = armadaLabel;
+        armadaBadge.title = `Tipe Armada: ${armadaLabel}`;
+
+        // Nama PIC yang bertugas (ambil data pada Kolom S) tepat di bawah tipe armada
+        const picVal = doorData.pic || '';
+        const picBadge = document.createElement('div');
+        picBadge.className = picVal
+          ? 'mt-0.5 px-2 py-0.5 bg-emerald-50 text-emerald-950 border border-emerald-300/80 text-[10px] font-bold rounded tracking-tight max-w-full truncate flex items-center justify-center gap-1 shadow-2xs'
+          : 'mt-0.5 px-2 py-0.5 bg-slate-50 text-slate-400 border border-slate-200 text-[9.5px] font-medium rounded italic max-w-full truncate';
+        
+        if (picVal) {
+          picBadge.innerHTML = `<span class="text-[8.5px] font-extrabold uppercase text-emerald-700 tracking-wider">PIC:</span><span class="font-bold truncate text-slate-900">${picVal}</span>`;
+          picBadge.title = `PIC yang bertugas: ${picVal} (Ambil data pada Kolom S)`;
+        } else {
+          picBadge.innerHTML = `<span class="text-[8.5px] uppercase text-slate-400 mr-1">PIC:</span><span class="text-slate-400">-</span>`;
+          picBadge.title = 'PIC bertugas belum terisi (Kolom S)';
+        }
+
+        // Container Statistik Pintu (Sudah ST & Belum ST) dibuat rapi, simetris, dan rata (tidak miring)
+        const statsBox = document.createElement('div');
+        statsBox.className = 'w-full mt-1.5 flex flex-col gap-1';
+
+        // Baris 1: Slot Terisi & Total CBM Staging
+        const counterRow = document.createElement('div');
+        counterRow.className = 'w-full flex items-center justify-between px-2 py-0.5 bg-blue-50/80 border border-blue-200/90 rounded text-[10.5px] font-mono shadow-2xs';
+        
+        const countWrapper = document.createElement('div');
+        countWrapper.className = 'flex items-center gap-1';
+
+        const countSpan = document.createElement('span');
+        countSpan.className = 'font-bold text-slate-700';
+        countSpan.textContent = `${pallets.length}/27 STG`;
+        countWrapper.appendChild(countSpan);
+
+        if (overflowCount > 0) {
+          const overflowBadge = document.createElement('button');
+          overflowBadge.className = 'bg-amber-500 hover:bg-amber-600 text-white font-bold text-[9px] px-1 py-0.2 rounded cursor-pointer transition shadow-xs flex items-center';
+          overflowBadge.innerHTML = `+${overflowCount}`;
+          overflowBadge.title = `${overflowCount} nomor staging tidak muat di slot (klik untuk lihat data)`;
+          overflowBadge.onclick = () => showOverflowModal(doorNum, doorData);
+          countWrapper.appendChild(overflowBadge);
+        }
+        counterRow.appendChild(countWrapper);
+
+        const cbmBadge = document.createElement('span');
+        cbmBadge.className = 'font-black text-blue-700 text-[10.5px]';
+        cbmBadge.textContent = formatCbm(doorTotalCbm);
+        cbmBadge.title = `Total CBM ${formatDoorLabel(doorNum)}: ${formatCbm(doorTotalCbm)}`;
+        counterRow.appendChild(cbmBadge);
+
+        // Baris 2: Belum ST (Kolom K Kosong / Belum Ada ST)
+        const unassignedCbm = doorData.unassignedCbm || 0;
+        const unassignedCount = doorData.unassignedRowCount || 0;
+        const hasUnassigned = unassignedCbm > 0 || unassignedCount > 0;
+
+        const unassignedBadge = document.createElement('div');
+        unassignedBadge.className = hasUnassigned
+          ? 'w-full flex items-center justify-between px-2 py-0.5 rounded text-[10.5px] font-mono border border-amber-300 bg-amber-50 text-amber-950 shadow-2xs cursor-pointer hover:bg-amber-100/90 transition select-none'
+          : 'w-full flex items-center justify-between px-2 py-0.5 rounded text-[10.5px] font-mono border border-slate-200 bg-slate-50 text-slate-500 select-none';
+
+        unassignedBadge.innerHTML = `
+          <span class="text-[10px] font-bold uppercase tracking-tight relative top-[1px] inline-block ${hasUnassigned ? 'text-amber-800' : 'text-slate-400'}">Belum ST:</span>
+          <span class="font-black ${hasUnassigned ? 'text-amber-950' : 'text-slate-600'}">${formatCbm(unassignedCbm)}</span>
+        `;
+        unassignedBadge.title = `Kolom K Kosong / Belum Ada ST: ${formatCbm(unassignedCbm)} (${unassignedCount} baris sheet, ${doorData.unassignedQty || 0} pcs)${hasUnassigned ? ' - Klik untuk lihat rincian barang' : ''}`;
+
+        if (hasUnassigned) {
+          unassignedBadge.onclick = () => showUnassignedDetailModal(doorNum, doorData);
+          unassignedBadge.setAttribute('role', 'button');
+          unassignedBadge.setAttribute('tabindex', '0');
+          unassignedBadge.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              showUnassignedDetailModal(doorNum, doorData);
+            }
+          });
+        }
+
+        statsBox.appendChild(counterRow);
+        statsBox.appendChild(unassignedBadge);
+
+        // Baris 3: Visual Efek / Animasi Persentase Belum Muat (Kurang Berapa Persen)
+        // Sesuai instruksi:
+        // - Kapasitas CBM Armada diambil dari data pada Kolom T (dengan fallback standar armada)
+        // - Kurang berapa persen dihitung dari: Kapasitas Armada (Kolom T) dikurangi total CBM dari baris dengan Kolom L & M terisi
+        // - Sisa: diambil dari penjumlahan data Total Stage + Total Belum ST
+        const capacity = getDoorCapacity(doorData);
+        const loadedCbm = doorData.loadedCbm || 0;
+        const sisaCbm = (doorTotalCbm || 0) + (doorData.unassignedCbm || 0);
+        const kurangCbm = Math.max(0, capacity - loadedCbm);
+        const kurangPercent = capacity > 0 ? (kurangCbm / capacity) * 100 : 0;
+        const loadedPercent = capacity > 0 ? Math.min(100, (loadedCbm / capacity) * 100) : 0;
+
+        const isFullyLoaded = kurangCbm <= 0;
+        const statusColor = isFullyLoaded ? 'text-emerald-400' : 'text-amber-300';
+        const pingColor = isFullyLoaded ? 'bg-emerald-400' : 'bg-amber-400';
+        const dotColor = isFullyLoaded ? 'bg-emerald-500' : 'bg-amber-500';
+
+        const progressWidget = document.createElement('div');
+        progressWidget.className = 'w-full mt-0.5 p-1.5 rounded-md bg-slate-950 border border-slate-800 text-white shadow-xs select-none cursor-pointer hover:border-slate-600 transition flex flex-col gap-1';
+        progressWidget.setAttribute('role', 'button');
+        progressWidget.setAttribute('tabindex', '0');
+        progressWidget.title = `Loading Progress ${formatDoorLabel(doorNum)}: Kapasitas ${capacity} CBM (${armadaLabel})\nSudah Dimuat (Kolom L & M terisi): ${formatCbm(loadedCbm)} (${loadedPercent.toFixed(1)}%)\nSisa (Total Stage ${formatCbm(doorTotalCbm)} + Belum ST ${formatCbm(unassignedCbm)}): ${formatNumber(sisaCbm)}\nKurang / Belum Muat: ${kurangPercent.toFixed(1)}%\nKlik untuk melihat rincian muat`;
+
+        progressWidget.innerHTML = `
+          <!-- Baris Indikator Belum / Kurang % -->
+          <div class="flex items-center justify-between text-[10px] font-mono leading-none">
+            <div class="flex items-center gap-1.5">
+              <span class="relative flex h-2 w-2">
+                <span class="${pingColor} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 ${dotColor}"></span>
+              </span>
+              <span class="text-[9.5px] font-bold uppercase tracking-tight text-slate-300">KURANG:</span>
+              <span class="font-black ${statusColor} text-[11px]">${kurangPercent.toFixed(1)}%</span>
+            </div>
+            <div class="text-[9.5px] font-mono text-slate-300">
+              <span class="text-slate-400 text-[8.5px]">Sisa</span> <span class="font-bold text-amber-200" title="Sisa Muatan: Total Stage (${formatCbm(doorTotalCbm)}) + Belum ST (${formatCbm(unassignedCbm)}) = ${formatNumber(sisaCbm)}">${formatNumber(sisaCbm)}</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar Visual Efek Animasi (Moving Striped Gradient) -->
+          <div class="relative w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/90 shadow-inner">
+            <div class="h-full rounded-full transition-all duration-700 ease-out ${isFullyLoaded ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-400'} animated-stripes" style="width: ${loadedPercent}%;"></div>
+          </div>
+
+          <!-- Keterangan Sub: Dimuat vs Kapasitas Armada -->
+          <div class="flex items-center justify-between text-[8.5px] font-mono text-slate-400 px-0.5 leading-none">
+            <span>Muat: <strong class="text-cyan-300 font-bold">${formatCbm(loadedCbm)}</strong> (${loadedPercent.toFixed(1)}%)</span>
+            <span class="text-slate-300 font-semibold" title="Kapasitas Armada ${armadaLabel}: ${capacity} CBM (Kolom T)">${capacity} CBM</span>
+          </div>
+        `;
+
+        progressWidget.onclick = () => showLoadingDetailModal(doorNum, doorData, capacity, loadedCbm, sisaCbm, kurangPercent, loadedPercent);
+        progressWidget.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            showLoadingDetailModal(doorNum, doorData, capacity, loadedCbm, sisaCbm, kurangPercent, loadedPercent);
+          }
+        });
+
+        statsBox.appendChild(progressWidget);
+
+        headerEl.appendChild(doorTitle);
+        headerEl.appendChild(lcLabel);
+        headerEl.appendChild(armadaBadge);
+        headerEl.appendChild(picBadge);
+        headerEl.appendChild(statsBox);
+        doorCol.appendChild(headerEl);
+
+        // Container 3 Staging disusun BERJAJAR KE SAMPING (side-by-side)
+        const stagingsContainer = document.createElement('div');
+        stagingsContainer.className = 'grid grid-cols-3 gap-1 p-1.5 bg-slate-100/90 flex-1';
+
+        // 3 Line per Pintu: Berurutan dari Line 33 sampai Line 62
+        // Pintu 08: Line 33, 34, 35 ... Pintu 17: Line 60, 61, 62
+        const doorIdx = TARGET_DOORS.indexOf(doorNum);
+        const baseLine = 33 + (doorIdx >= 0 ? doorIdx : (doorNum - 8)) * 3;
+
+        const stagingConfigs = [
+          { name: `Line ${baseLine}`, startSlot: 1, endSlot: 9 },       // Pallet 1 - 9
+          { name: `Line ${baseLine + 1}`, startSlot: 10, endSlot: 18 }, // Pallet 10 - 18
+          { name: `Line ${baseLine + 2}`, startSlot: 19, endSlot: 27 }, // Pallet 19 - 27
+        ];
+
+        stagingConfigs.forEach((stg, stgIdx) => {
+          const stgCol = document.createElement('div');
+          stgCol.className = 'flex flex-col gap-1';
+
+          // Subheader Staging
+          const stgHeader = document.createElement('div');
+          stgHeader.className = 'bg-slate-800 text-white text-[10px] font-bold text-center py-1 rounded-t-xs tracking-wider';
+          stgHeader.textContent = stg.name;
+          stgCol.appendChild(stgHeader);
+
+          // 9 Kotak Pallet vertikal dari atas ke bawah
+          for (let slotNum = stg.startSlot; slotNum <= stg.endSlot; slotNum++) {
+            const palletIndex = slotNum - 1; // 0-based
+            const palletItem = pallets[palletIndex]; // jika terisi
+            const isFilled = !!palletItem;
+
+            const slotBox = document.createElement('div');
+            slotBox.className = `pallet-slot rounded border flex flex-col justify-between items-center py-1 px-0.5 text-center relative select-none transition-all ${
+              isFilled
+                ? 'slot-filled bg-emerald-100 border-emerald-500 text-emerald-950 font-bold shadow-xs cursor-pointer'
+                : 'bg-slate-50 border-dashed border-slate-300 text-slate-400 cursor-default'
+            }`;
+
+            // Baris atas: Slot number kecil di kiri dan indikator jumlah baris dipivot di kanan jika >1
+            const topBar = document.createElement('div');
+            topBar.className = 'w-full flex items-center justify-between px-1 leading-none';
+
+            const slotIndexBadge = document.createElement('span');
+            slotIndexBadge.className = `text-[8px] font-mono leading-none ${
+              isFilled ? 'text-emerald-700 font-bold' : 'text-slate-400 font-medium'
+            }`;
+            slotIndexBadge.textContent = slotNum < 10 ? `0${slotNum}` : `${slotNum}`;
+            topBar.appendChild(slotIndexBadge);
+
+            if (isFilled && palletItem.rowCount > 1) {
+              const multiBadge = document.createElement('span');
+              multiBadge.className = 'text-[7.5px] font-mono font-bold text-emerald-800/90 bg-emerald-200/80 px-1 py-0.2 rounded-xs leading-none';
+              multiBadge.textContent = `${palletItem.rowCount}x`;
+              multiBadge.title = `${palletItem.rowCount} baris sheet dipivot menjadi 1 perwakilan (klik untuk detail)`;
+              topBar.appendChild(multiBadge);
+            }
+            slotBox.appendChild(topBar);
+
+            if (isFilled) {
+              // Click handler: Klik membuka modal detail pivot Article, Nama Barang, dan QTY
+              slotBox.onclick = () => {
+                showStagingDetailModal(doorNum, stg.name, slotNum, palletItem, doorData);
+              };
+              slotBox.setAttribute('role', 'button');
+              slotBox.setAttribute('tabindex', '0');
+              slotBox.setAttribute('title', `Klik ${palletItem.st0} untuk melihat rincian barang`);
+              slotBox.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  showStagingDetailModal(doorNum, stg.name, slotNum, palletItem, doorData);
+                }
+              });
+
+              // Nomor ST0 ditampilkan utuh tanpa terpotong titik (...)
+              // Jika panjang karakter > 6 (misal ST00192825), baris lanjutannya ditampilkan di bawahnya ("di bawahnya tulisannya")
+              const stContainer = document.createElement('div');
+              stContainer.className = 'flex flex-col items-center justify-center font-mono font-black select-all w-full my-auto leading-[1.15] px-0.5';
+              
+              const rawSt = String(palletItem.st0 || '').trim();
+              if (rawSt.length > 6) {
+                // Potong: baris 1 (6 karakter pertama, misal "ST0019"), baris 2 (karakter sisanya, misal "2825")
+                const part1 = rawSt.substring(0, 6);
+                const part2 = rawSt.substring(6);
+                stContainer.innerHTML = `
+                  <span class="text-[9.5px] sm:text-[10px] text-emerald-950 tracking-tight whitespace-nowrap leading-none">${part1}</span>
+                  <span class="text-[10px] sm:text-[10.5px] text-emerald-900 tracking-wider font-black whitespace-nowrap leading-none mt-0.5">${part2}</span>
+                `;
+              } else {
+                stContainer.innerHTML = `
+                  <span class="text-[10px] sm:text-[10.5px] text-emerald-950 tracking-tight whitespace-nowrap leading-none">${rawSt}</span>
+                `;
+              }
+              slotBox.appendChild(stContainer);
+
+              // Keterangan Jumlah CBM di bawah nomor ST (sesuai request user), single-line tidak wrap
+              const cbmBadge = document.createElement('div');
+              cbmBadge.className = 'font-mono font-bold text-[8px] sm:text-[8.5px] text-emerald-900 bg-emerald-200/90 border border-emerald-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
+              cbmBadge.textContent = formatCbm(palletItem.cbm);
+              slotBox.appendChild(cbmBadge);
+
+            } else {
+              // Kotak kosong
+              const emptyDash = document.createElement('span');
+              emptyDash.className = 'text-[12px] text-slate-300 font-mono font-bold my-auto leading-none';
+              emptyDash.textContent = '—';
+              slotBox.appendChild(emptyDash);
+            }
+
+            stgCol.appendChild(slotBox);
+          }
+
+          stagingsContainer.appendChild(stgCol);
+        });
+
+        doorCol.appendChild(stagingsContainer);
+        container.appendChild(doorCol);
+      });
+
+      updateHeaderStats();
+    }
+
+    /**
+     * Variabel penampung artikel pada modal detail yang sedang terbuka
+     */
+    let currentModalArticles = [];
+
+    /**
+     * Render isi tabel pivot barang (Article, Nama Barang, QTY, CBM) di dalam modal
+     */
+    function renderModalArticlesTable(filterText = '') {
+      const tbody = document.getElementById('detail-articles-tbody');
+      const searchVal = filterText.toLowerCase().trim();
+      const filtered = currentModalArticles.filter(a => {
+        if (!searchVal) return true;
+        return (a.article && a.article.toLowerCase().includes(searchVal)) ||
+               (a.namaBarang && a.namaBarang.toLowerCase().includes(searchVal));
+      });
+
+      tbody.innerHTML = '';
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-8 text-center text-slate-400 italic">
+              Tidak ada data article yang sesuai dengan pencarian "${filterText}"
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let totalQty = 0;
+      let totalCbm = 0;
+
+      filtered.forEach((art, idx) => {
+        totalQty += (art.qty || 0);
+        totalCbm += (art.cbm || 0);
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/90 transition-colors';
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-center text-slate-400 font-mono text-[11px]">${idx + 1}</td>
+          <td class="py-2.5 px-3 font-mono font-bold text-slate-900 text-[11.5px] select-all whitespace-nowrap">${art.article || '-'}</td>
+          <td class="py-2.5 px-3 font-medium text-slate-800 text-[11.5px]">${art.namaBarang || '-'}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-blue-700 text-[11.5px] whitespace-nowrap">${(art.qty || 0).toLocaleString('id-ID')}</td>
+          <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-[11.5px] whitespace-nowrap">${formatCbm(art.cbm)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('detail-tfoot-qty').textContent = totalQty.toLocaleString('id-ID');
+      document.getElementById('detail-tfoot-cbm').textContent = formatCbm(totalCbm);
+      document.getElementById('detail-article-count-badge').textContent = `${filtered.length} Article`;
+    }
+
+    /**
+     * Menampilkan modal detail staging dengan pivot data (Article, Nama Barang, QTY)
+     */
+    function showStagingDetailModal(doorNum, stgName, slotNum, palletItem, doorData) {
+      if (!palletItem) return;
+
+      const modal = document.getElementById('staging-detail-modal');
+      const st0Title = document.getElementById('detail-st0-title');
+      const rowCountBadge = document.getElementById('detail-rowcount-badge');
+      const locationSub = document.getElementById('detail-location-subtitle');
+      const totalCbmEl = document.getElementById('detail-total-cbm');
+      const totalQtyEl = document.getElementById('detail-total-qty');
+      const lcRouteEl = document.getElementById('detail-lc-route');
+      const armadaEl = document.getElementById('detail-armada');
+      const picEl = document.getElementById('detail-pic');
+      const searchInput = document.getElementById('detail-search-input');
+
+      // Populate Header & Info Strip
+      st0Title.textContent = palletItem.st0 || '-';
+      rowCountBadge.textContent = `${palletItem.rowCount || 1} baris sheet dipivot`;
+      const slotText = typeof slotNum === 'number' ? `Slot #${slotNum < 10 ? '0' + slotNum : slotNum}` : slotNum;
+      locationSub.textContent = `${formatDoorLabel(doorNum)} • ${stgName} • ${slotText}`;
+      totalCbmEl.textContent = formatCbm(palletItem.cbm);
+      totalQtyEl.textContent = `${(palletItem.totalQty || 0).toLocaleString('id-ID')} Pcs`;
+      lcRouteEl.textContent = palletItem.lc || '-';
+      armadaEl.textContent = (doorData && doorData.armada) ? doorData.armada : '-';
+      if (picEl) {
+        picEl.textContent = (doorData && doorData.pic) ? doorData.pic : '-';
+      }
+
+      // Reset filter pencarian
+      if (searchInput) {
+        searchInput.value = '';
+      }
+
+      currentModalArticles = palletItem.articles || [];
+      if (currentModalArticles.length === 0) {
+        currentModalArticles = [{
+          article: '-',
+          namaBarang: 'Data barang tidak tercatat di Kolom C/D',
+          qty: palletItem.totalQty || 0,
+          cbm: palletItem.cbm || 0,
+          rowCount: palletItem.rowCount || 1,
+          rows: palletItem.rows || []
+        }];
+      }
+
+      renderModalArticlesTable('');
+      modal.classList.remove('hidden');
+    }
+
+    /**
+     * Menampilkan modal rincian barang yang belum ada ST (kolom K kosong)
+     */
+    function showUnassignedDetailModal(doorNum, doorData) {
+      if (!doorData) return;
+      const syntheticItem = {
+        st0: 'BELUM ADA ST (KOLOM K KOSONG)',
+        rowCount: doorData.unassignedRowCount || 0,
+        cbm: doorData.unassignedCbm || 0,
+        totalQty: doorData.unassignedQty || 0,
+        lc: doorData.lc || '-',
+        articles: doorData.unassignedArticles || []
+      };
+      showStagingDetailModal(doorNum, 'Pending Staging', 'Tanpa Slot', syntheticItem, doorData);
+    }
+
+    /**
+     * Menampilkan modal rincian barang yang sudah dimuat (Kolom L & M terisi) dan analisis kapasitas armada
+     */
+    function showLoadingDetailModal(doorNum, doorData, capacity, loadedCbm, sisaCbm, kurangPercent, loadedPercent) {
+      if (!doorData) return;
+      const syntheticItem = {
+        st0: `PROGRESS MUAT: ${loadedPercent.toFixed(1)}% (KURANG: ${kurangPercent.toFixed(1)}%)`,
+        rowCount: doorData.loadedRowCount || 0,
+        cbm: loadedCbm,
+        totalQty: doorData.loadedQty || 0,
+        lc: doorData.lc || '-',
+        articles: doorData.loadedArticles || []
+      };
+      showStagingDetailModal(
+        doorNum, 
+        `Kapasitas: ${capacity} CBM`, 
+        `Sisa: ${formatNumber(sisaCbm)} (Total Stage + Belum ST)`, 
+        syntheticItem, 
+        doorData
+      );
+    }
+
+    /**
+     * Menampilkan modal overflow pallet jika >27
+     */
+    function showOverflowModal(doorNum, doorData) {
+      const modal = document.getElementById('overflow-modal');
+      const title = document.getElementById('overflow-door-title');
+      const list = document.getElementById('overflow-items-list');
+
+      title.textContent = `Pallet Overflow: ${formatDoorLabel(doorNum)} (${doorData.overflow.length} Staging)`;
+      list.innerHTML = '';
+
+      doorData.overflow.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'p-2.5 bg-amber-50 border border-amber-200 rounded flex items-center justify-between hover:bg-amber-100/70 transition cursor-pointer';
+        div.title = 'Klik untuk melihat rincian barang';
+        div.onclick = () => {
+          showStagingDetailModal(doorNum, 'Overflow', 28 + idx, item, doorData);
+        };
+        div.innerHTML = `
+          <div class="space-y-0.5">
+            <div class="font-bold text-amber-900 flex items-center gap-2">
+              <span>#${28 + idx}</span>
+              <span class="text-emerald-800 font-mono">${item.st0}</span>
+              <span class="text-[10px] text-slate-500 font-normal">(${item.rowCount || 1} baris dipivot)</span>
+            </div>
+            <div class="text-[10.5px] text-slate-600">
+              LC: <strong class="text-slate-800">${item.lc}</strong> | Total CBM: <strong class="text-slate-800">${formatCbm(item.cbm)}</strong> | QTY: <strong class="text-blue-800">${(item.totalQty || 0).toLocaleString('id-ID')}</strong>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] bg-amber-200/60 text-amber-900 px-2 py-0.5 rounded font-semibold">
+              Baris: ${(item.rows || [item.originalRow]).slice(0, 3).join(', ')}${item.rows && item.rows.length > 3 ? '...' : ''}
+            </span>
+            <span class="text-xs text-amber-800 font-bold underline">Detail &rarr;</span>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+
+      modal.classList.remove('hidden');
+    }
+
+    // =========================================================================
+    // FUNGSI UTAMA LOAD DATA & REFRESH LOGIC
+    // =========================================================================
+    async function loadDashboardData(showLoadingIndicator = true) {
+      if (state.isFetching) return;
+      state.isFetching = true;
+
+      const refreshIcon = document.getElementById('refresh-icon');
+      const syncDot = document.getElementById('sync-dot');
+      const syncLabel = document.getElementById('sync-label');
+
+      if (showLoadingIndicator) {
+        refreshIcon.classList.add('animate-spin');
+        syncDot.className = 'w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping';
+        syncLabel.textContent = 'SYNCING';
+      }
+
+      try {
+        let rawRows = [];
+
+        if (state.mode === 'live') {
+          // Mode Live: Ambil dari Google Visualization API
+          rawRows = await fetchFromGoogleSheets();
+          hideErrorBanner();
+        } else {
+          // Mode Demo: Gunakan dataset simulasi
+          rawRows = generateRealisticDemoData();
+        }
+
+        // Proses mapping kolom & pengelompokan
+        const processedDoors = processRawSheetRows(rawRows);
+        state.dataDoors = processedDoors;
+
+        // Render visual
+        renderDoorsUI();
+
+        // Update timestamp
+        const now = new Date();
+        state.lastUpdated = now;
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
+        document.getElementById('last-update-time').textContent = timeStr;
+
+        // Reset countdown timer
+        state.countdown = REFRESH_INTERVAL_SEC;
+        document.getElementById('countdown-text').textContent = `${state.countdown}s`;
+
+        syncDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+        syncLabel.textContent = 'LIVE';
+
+      } catch (err) {
+        console.error('Error saat load data:', err);
+        showErrorBanner('Gagal Mengambil Data', err.message);
+
+        syncDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+        syncLabel.textContent = 'ERROR';
+
+        // Jika live gagal dan belum ada data terisi, fallback otomatis ke demo agar UI tidak kosong
+        if (Object.keys(state.dataDoors).length === 0) {
+          state.dataDoors = processRawSheetRows(generateRealisticDemoData());
+          renderDoorsUI();
+        }
+      } finally {
+        state.isFetching = false;
+        refreshIcon.classList.remove('animate-spin');
+      }
+    }
+
+    // =========================================================================
+    // ERROR HANDLING & NOTIFIKASI
+    // =========================================================================
+    function showErrorBanner(title, message) {
+      const banner = document.getElementById('error-banner');
+      const errTitle = document.getElementById('error-title');
+      const errMsg = document.getElementById('error-message');
+
+      errTitle.textContent = title;
+      errMsg.textContent = message;
+      banner.classList.remove('hidden');
+    }
+
+    function hideErrorBanner() {
+      const banner = document.getElementById('error-banner');
+      banner.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // JAM REALTIME & TIMER AUTO-REFRESH (30 DETIK)
+    // =========================================================================
+    function updateClockAndCountdown() {
+      const now = new Date();
+
+      // Format Waktu Realtime
+      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
+      const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+
+      document.getElementById('live-time').textContent = timeStr;
+      document.getElementById('live-date').textContent = dateStr;
+
+      // Hitung Mundur Auto-Refresh 30 Detik
+      if (!state.isFetching) {
+        state.countdown--;
+        if (state.countdown <= 0) {
+          state.countdown = REFRESH_INTERVAL_SEC;
+          loadDashboardData(true);
+        } else {
+          document.getElementById('countdown-text').textContent = `${state.countdown}s`;
+        }
+      }
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS & MODAL HANDLERS
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inisialisasi input pengaturan dari state
+      const inputUrl = document.getElementById('input-sheet-url');
+      const inputTab = document.getElementById('input-sheet-tab');
+      const modeDemoBtn = document.getElementById('mode-demo-btn');
+      const modeLiveBtn = document.getElementById('mode-live-btn');
+
+      inputUrl.value = state.sheetUrlOrId;
+      inputTab.value = state.sheetTabName;
+
+      function updateModeButtons() {
+        if (state.mode === 'live') {
+          modeLiveBtn.className = 'px-3 py-1 rounded-md transition bg-blue-600 text-white shadow-xs';
+          modeDemoBtn.className = 'px-3 py-1 rounded-md transition text-slate-700 hover:bg-slate-300';
+        } else {
+          modeDemoBtn.className = 'px-3 py-1 rounded-md transition bg-blue-600 text-white shadow-xs';
+          modeLiveBtn.className = 'px-3 py-1 rounded-md transition text-slate-700 hover:bg-slate-300';
+        }
+      }
+      updateModeButtons();
+
+      modeDemoBtn.addEventListener('click', () => {
+        state.mode = 'demo';
+        updateModeButtons();
+      });
+
+      modeLiveBtn.addEventListener('click', () => {
+        state.mode = 'live';
+        updateModeButtons();
+      });
+
+      // Tombol Refresh Manual
+      document.getElementById('btn-refresh').addEventListener('click', () => {
+        loadDashboardData(true);
+      });
+
+      // Tombol Modal Pengaturan
+      const settingsModal = document.getElementById('settings-modal');
+      document.getElementById('btn-settings').addEventListener('click', () => {
+        inputUrl.value = state.sheetUrlOrId;
+        inputTab.value = state.sheetTabName;
+        updateModeButtons();
+        settingsModal.classList.remove('hidden');
+      });
+
+      document.getElementById('btn-close-modal').addEventListener('click', () => {
+        settingsModal.classList.add('hidden');
+      });
+
+      document.getElementById('btn-cancel-modal').addEventListener('click', () => {
+        settingsModal.classList.add('hidden');
+      });
+
+      // Simpan Pengaturan
+      document.getElementById('btn-save-settings').addEventListener('click', () => {
+        const newUrl = inputUrl.value.trim();
+        const newTab = inputTab.value.trim() || 'DATA';
+
+        state.sheetUrlOrId = newUrl;
+        state.sheetTabName = newTab;
+
+        localStorage.setItem('dock_sheet_url_or_id', newUrl);
+        localStorage.setItem('dock_sheet_tab', newTab);
+        localStorage.setItem('dock_mode', state.mode);
+
+        settingsModal.classList.add('hidden');
+        hideErrorBanner();
+        loadDashboardData(true);
+      });
+
+      // Modal Overflow Close
+      const overflowModal = document.getElementById('overflow-modal');
+      document.getElementById('btn-close-overflow-modal').addEventListener('click', () => {
+        overflowModal.classList.add('hidden');
+      });
+      document.getElementById('btn-dismiss-overflow').addEventListener('click', () => {
+        overflowModal.classList.add('hidden');
+      });
+
+      // Modal Staging Detail (Article, Nama Barang, QTY) Handlers
+      const stagingDetailModal = document.getElementById('staging-detail-modal');
+      const closeStagingModal = () => {
+        stagingDetailModal.classList.add('hidden');
+      };
+      document.getElementById('btn-close-staging-modal').addEventListener('click', closeStagingModal);
+      document.getElementById('btn-dismiss-staging-modal').addEventListener('click', closeStagingModal);
+
+      // Search Filter Article / Nama Barang
+      const searchDetailInput = document.getElementById('detail-search-input');
+      if (searchDetailInput) {
+        searchDetailInput.addEventListener('input', (e) => {
+          renderModalArticlesTable(e.target.value);
+        });
+      }
+
+      // Close modal on click backdrop
+      stagingDetailModal.addEventListener('click', (e) => {
+        if (e.target === stagingDetailModal) {
+          closeStagingModal();
+        }
+      });
+      overflowModal.addEventListener('click', (e) => {
+        if (e.target === overflowModal) {
+          overflowModal.classList.add('hidden');
+        }
+      });
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+          settingsModal.classList.add('hidden');
+        }
+      });
+
+      // Close modal on Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          stagingDetailModal.classList.add('hidden');
+          overflowModal.classList.add('hidden');
+          settingsModal.classList.add('hidden');
+        }
+      });
+
+      // Banner Error Handlers
+      document.getElementById('btn-dismiss-error').addEventListener('click', () => {
+        hideErrorBanner();
+      });
+
+      document.getElementById('btn-use-demo-fallback').addEventListener('click', () => {
+        state.mode = 'demo';
+        localStorage.setItem('dock_mode', 'demo');
+        updateModeButtons();
+        hideErrorBanner();
+        loadDashboardData(true);
+      });
+
+      // Tombol Fullscreen TV Layar Gudang
+      document.getElementById('btn-fullscreen').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+            console.warn('Gagal masuk mode fullscreen:', err);
+          });
+        } else {
+          document.exitFullscreen().catch(err => {
+            console.warn('Gagal keluar mode fullscreen:', err);
+          });
+        }
+      });
+
+      // Jalankan clock setiap 1 detik
+      setInterval(updateClockAndCountdown, 1000);
+      updateClockAndCountdown();
+
+      // Inisialisasi dan Event Listener Zoom Level
+      applyZoom(state.zoomLevel || 1.0);
+
+      document.getElementById('btn-zoom-in').addEventListener('click', () => {
+        applyZoom(state.zoomLevel + 0.1);
+      });
+
+      document.getElementById('btn-zoom-out').addEventListener('click', () => {
+        applyZoom(state.zoomLevel - 0.1);
+      });
+
+      document.getElementById('btn-zoom-reset').addEventListener('click', () => {
+        applyZoom(1.0);
+      });
+
+      // Load data awal
+      loadDashboardData(false);
+    });
+  </script>
+
+</body>
+</html>
