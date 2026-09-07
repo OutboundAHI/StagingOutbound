@@ -68,10 +68,10 @@
       background: #64748b;
     }
 
-    /* Ketinggian kotak pallet dibuat seragam dan proporsional untuk nomor ST & CBM */
+    /* Ketinggian kotak pallet dibuat seragam dan kompak agar terbaca semua tanpa terpotong */
     .pallet-slot {
-      min-height: 62px;
-      height: 62px;
+      min-height: 54px;
+      height: 54px;
       transition: all 0.15s ease-in-out;
     }
     .pallet-slot.slot-filled {
@@ -157,7 +157,7 @@
               Monitoring Staging Outbound
             </h1>
             <span class="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded">
-              Dock 08 - 17 • Line 33 - Line 62
+              Dock 08 - 15 • Kolom O (Line) & Kolom Q (Pintu)
             </span>
           </div>
           <p class="text-xs text-slate-400">
@@ -269,13 +269,13 @@
         
         <div class="flex items-center gap-1.5">
           <span class="text-slate-500 font-medium">Pintu Aktif:</span>
-          <span id="stat-active-doors" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">10 Pintu</span>
+          <span id="stat-active-doors" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">8 Pintu</span>
         </div>
 
         <div class="flex items-center gap-1.5">
           <span class="text-slate-500 font-medium">Total Pallet Terisi:</span>
           <span id="stat-filled-pallets" class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            0 / 270 (0%)
+            0 / 216 (0%)
           </span>
         </div>
 
@@ -353,14 +353,14 @@
 
   <!-- ========================================== -->
   <!-- ========================================== -->
-  <!-- AREA UTAMA DERMAGA OUTBOUND (DOCK 08 - 17) -->
-  <!-- 1. PINTU DIPISAH PER KOTAK                 -->
-  <!-- 2. LINE 33 - 62 MENJADI 1 KOTAK TERPADU    -->
+  <!-- AREA UTAMA DERMAGA OUTBOUND (DOCK 08 - 15) -->
+  <!-- 1. PINTU DIPISAH PER KOTAK (KOLOM Q)       -->
+  <!-- 2. LINE MENYESUAIKAN KOLOM O DI SHEET      -->
   <!-- ========================================== -->
   <main class="flex-1 p-3 sm:p-5 max-w-[1920px] w-full mx-auto">
     <div class="dock-scroll overflow-x-auto pb-6">
       
-      <div id="dock-workspace" class="flex flex-col gap-5 min-w-[2180px] w-full items-start transition-transform duration-200">
+      <div id="dock-workspace" class="flex flex-col gap-5 min-w-[1780px] w-full items-start transition-transform duration-200">
         
         <!-- =================================================== -->
         <!-- 1. SEKSI PINTU OUTBOUND (PINTU DIPISAH PER KOTAK)   -->
@@ -373,14 +373,14 @@
               <span class="w-2.5 h-6 rounded-xs bg-blue-600 inline-block"></span>
               <div class="flex items-center gap-2">
                 <h2 class="text-sm font-extrabold uppercase text-slate-900 tracking-wider">
-                  Pintu Outbound (Dermaga 08 - 17)
+                  Pintu Outbound (Dermaga 08 - 15)
                 </h2>
                 <span class="bg-blue-100 text-blue-800 border border-blue-300 text-[10.5px] font-mono font-bold px-2 py-0.5 rounded">
-                  10 Kotak Pintu Dermaga
+                  8 Kotak Pintu Dermaga
                 </span>
               </div>
               <span class="text-xs text-slate-400 font-medium hidden md:inline">
-                • Status Armada, PIC Checker, No. LC, Belum ST, & Sisa Muatan
+                • Status Armada, PIC Checker, No. LC, Kolom O (Line), Kolom Q (Pintu)
               </span>
             </div>
 
@@ -389,32 +389,32 @@
             </div>
           </div>
 
-          <!-- Deretan 10 Kotak Pintu Berdiri Sendiri -->
-          <div id="doors-container" class="grid grid-cols-10 gap-2.5 min-w-[2180px] w-full items-stretch">
-            <!-- 10 Komponen Kartu Pintu Outbound akan dirender dinamis di sini -->
+          <!-- Deretan 8 Kotak Pintu Berdiri Sendiri -->
+          <div id="doors-container" class="grid grid-cols-8 gap-3 min-w-[1780px] w-full items-stretch">
+            <!-- 8 Komponen Kartu Pintu Outbound akan dirender dinamis di sini -->
           </div>
         </section>
 
         <!-- =================================================== -->
-        <!-- 2. SATU KOTAK BESAR UTUH UNTUK LINE 33 - LINE 62    -->
+        <!-- 2. SATU KOTAK BESAR UTUH UNTUK LINE STAGING         -->
         <!-- =================================================== -->
-        <section id="lines-unified-section" class="w-full bg-white border-2 border-slate-900 rounded-xl shadow-md overflow-hidden min-w-[2180px] transition-all">
+        <section id="lines-unified-section" class="w-full bg-white border-2 border-slate-900 rounded-xl shadow-md overflow-hidden min-w-[1780px] transition-all">
           
-          <!-- Header Utama 1 Kotak Line 33 - Line 62 -->
+          <!-- Header Utama 1 Kotak Line Staging -->
           <div class="bg-slate-900 text-white px-4 py-2.5 flex flex-wrap items-center justify-between border-b-2 border-slate-900 gap-3">
             <div class="flex items-center gap-2.5">
               <span class="w-2.5 h-6 rounded-xs bg-emerald-500 inline-block"></span>
               <div>
                 <div class="flex items-center gap-2">
-                  <h2 class="text-sm sm:text-base font-black uppercase tracking-wider text-white">
-                    LINE 33 - LINE 62 (STAGING OUTBOUND)
+                  <h2 id="lines-main-title" class="text-sm sm:text-base font-black uppercase tracking-wider text-white">
+                    LINE STAGING OUTBOUND (LINE 33 - LINE 56)
                   </h2>
-                  <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded">
-                    1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line)
+                  <span id="lines-main-subtitle" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded">
+                    1 Kotak Staging Terpadu • 24 Line (9 Slot Pallet / Line)
                   </span>
                 </div>
                 <p class="text-[11px] text-slate-300">
-                  Area Staging Pallet Terpadu Line 33 s/d Line 62 • Klik nomor ST/BR untuk melihat rincian barang pivot (Article, Nama, QTY, CBM)
+                  Area Staging Pallet Terpadu sesuai Kolom O (Line) & Kolom Q (Pintu) • Klik nomor ST/BR untuk rincian barang pivot (Article, Nama, QTY, CBM)
                 </p>
               </div>
             </div>
@@ -731,11 +731,42 @@
       STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" -> Berisi kode ST0 atau BR000 (regex /(?:ST|BR)0\d+/i)
       LOADED_L: 11,    // Kolom L: Data Loading / Jam Load / Status Muat
       LOADED_M: 12,    // Kolom M: Data Loading / Checker / Status Muat
-      PINTU: 16,       // Kolom Q: Header asli "PINTU" -> Nomor pintu outbound ("P01", "P11", "P8")
+      LINE: 14,        // Kolom O: Header asli "LINE" -> Menentukan alokasi Line Staging (misal: "33", "34", "Line 33", "33-35")
+      PINTU: 16,       // Kolom Q: Header asli "PINTU" -> Nomor pintu outbound ("P01", "P08", "P15", "P8", "8", dst.)
       TYPE_ARMADA: 17, // Kolom R: Header asli "TYPE ARMADA" -> Jenis armada ("CDD", "Wingbox", dll)
       PIC: 18,         // Kolom S: Header asli "PIC" -> Nama Petugas / Checker yang bertugas
       CBM_ARMADA: 19   // Kolom T: Header asli "CBM ARMADA" -> Nilai CBM armada (misal: 15, 11, 24, 37)
     };
+
+    /**
+     * Parsing nomor Line dari Kolom O sheet:
+     * Mendukung format seperti "33", "Line 33", "L33", "33-35", "33 - 35", "33, 34", "Line 33-34"
+     */
+    function parseLineNumbers(raw) {
+      if (raw === undefined || raw === null) return [];
+      const str = String(raw).trim();
+      if (!str) return [];
+
+      // Cek apakah berupa rentang seperti "33-35", "33 - 35", "LINE 33 - 35"
+      const rangeMatch = str.match(/(\d+)\s*[-–—]\s*(\d+)/);
+      if (rangeMatch) {
+        const start = parseInt(rangeMatch[1], 10);
+        const end = parseInt(rangeMatch[2], 10);
+        if (!isNaN(start) && !isNaN(end) && end >= start && (end - start) <= 12) {
+          const list = [];
+          for (let l = start; l <= end; l++) list.push(l);
+          return list;
+        }
+      }
+
+      // Ekstrak seluruh angka individual yang valid (misal "33, 34" atau "Line 33")
+      const matches = str.match(/\d+/g);
+      if (matches) {
+        const nums = matches.map(m => parseInt(m, 10)).filter(n => !isNaN(n) && n > 0 && n <= 120);
+        return Array.from(new Set(nums));
+      }
+      return [];
+    }
 
     /**
      * Standar Kapasitas Muatan CBM per Jenis Armada (Fallback jika Kolom T tidak terisi):
@@ -792,9 +823,9 @@
       return getArmadaCapacity(doorData ? doorData.armada : '');
     }
 
-    // Daftar pintu yang ditampilkan pada dashboard (Pintu 08 sampai 17 -> Line 33 sampai Line 62)
-    const TARGET_DOORS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-    const PALLETS_PER_DOOR = 27; // 3 staging x 9 baris pallet
+    // Daftar pintu yang ditampilkan pada dashboard (Pintu 08 sampai 15, 8 Pintu Outbound)
+    const TARGET_DOORS = [8, 9, 10, 11, 12, 13, 14, 15];
+    const PALLETS_PER_DOOR = 27; // Default 3 line x 9 baris pallet
     const REFRESH_INTERVAL_SEC = 30; // Auto-refresh setiap 30 detik
 
     // =========================================================================
@@ -843,8 +874,8 @@
     function generateRealisticDemoData() {
       // 6 Armada Standar sesuai instruksi:
       // 1. CDD LONG: 15 CBM, 2. CONT-20: 24 CBM, 3. CONT-40: 48 CBM, 4. FUSO: 27 CBM, 5. WINGBOX: 37 CBM, 6. CDE LONG: 11 CBM
-      const armadas = ['CDD LONG', 'WINGBOX', 'FUSO', 'CONT-20', 'CONT-40', 'CDE LONG', 'CDD LONG', 'WINGBOX', 'FUSO', 'CONT-20'];
-      const picList = ['Bambang H.', 'Dedi S.', 'Ahmad Fauzi', 'Agus Wibowo', 'Hendra P.', 'Rian Pratama', 'Eko Saputra', 'Fajar N.', 'Doni K.', 'Tri Wahyudi'];
+      const armadas = ['CDD LONG', 'WINGBOX', 'FUSO', 'CONT-20', 'CONT-40', 'CDE LONG', 'CDD LONG', 'WINGBOX'];
+      const picList = ['Bambang H.', 'Dedi S.', 'Ahmad Fauzi', 'Agus Wibowo', 'Hendra P.', 'Rian Pratama', 'Eko Saputra', 'Fajar N.'];
       const catalog = [
         { article: '10042819', name: 'MINYAK GORENG SAWIT POUCH 2L' },
         { article: '10051120', name: 'GULA PASIR KRISTAL PUTIH 1KG' },
@@ -866,14 +897,15 @@
         const pic = picList[index % picList.length];
         const armadaCap = getArmadaCapacity(armada);
         const lcNumber = (doorNum === 8) ? '260906L053' : `260905L${String(60 + index * 4).padStart(3, '0')}`;
+        const baseLine = 33 + index * 3;
         
         // Pintu 8: Sesuai contoh spesifik dari user:
         // Armada: CDD LONG (Kolom T: 15), LC: 260906L053, Total Stage: 2.71 CBM, Belum ST: 7.85 CBM (Sisa: 10.56 CBM)
-        // Memasukkan contoh ST000 dan BR000 langsung ke Line Staging Pintu 08
+        // Memasukkan contoh ST000 dan BR000 langsung ke Line Staging Pintu 08 (Line 33, 34, 35)
         if (doorNum === 8) {
           const p8StagingList = [
-            { st: 'ST00192825', cbm: 1.50, qty: 110, loaded: true, time: '09:40' },
-            { st: 'BR00019286', cbm: 1.21, qty: 85, loaded: false, time: '' }
+            { st: 'ST00192825', cbm: 1.50, qty: 110, loaded: true, time: '09:40', line: 33 },
+            { st: 'BR00019286', cbm: 1.21, qty: 85, loaded: false, time: '', line: 34 }
           ]; // Total staging = 2.71 CBM (Loaded = 1.50 CBM)
 
           p8StagingList.forEach((item, sIdx) => {
@@ -887,7 +919,8 @@
             rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${item.st}-OK`;
             rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
-            rowArr[SHEET_COLUMNS.PINTU] = 'P08';
+            rowArr[SHEET_COLUMNS.LINE] = item.line; // Kolom O: Line Staging (33, 34)
+            rowArr[SHEET_COLUMNS.PINTU] = 'P08';    // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             rowArr[SHEET_COLUMNS.PIC] = pic;
             rowArr[SHEET_COLUMNS.CBM_ARMADA] = 15; // Kolom T: 15
@@ -909,7 +942,8 @@
             unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kosong / belum ada ST
             unRow[SHEET_COLUMNS.LOADED_L] = '';
             unRow[SHEET_COLUMNS.LOADED_M] = '';
-            unRow[SHEET_COLUMNS.PINTU] = 'P08';
+            unRow[SHEET_COLUMNS.LINE] = '33-35'; // Kolom O: Line Staging
+            unRow[SHEET_COLUMNS.PINTU] = 'P08';   // Kolom Q: Nomor Pintu Outbound
             unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             unRow[SHEET_COLUMNS.PIC] = pic;
             unRow[SHEET_COLUMNS.CBM_ARMADA] = 15; // Kolom T: 15
@@ -923,9 +957,9 @@
         if (doorNum === 9) {
           const screenshotSt = 'ST00193048';
           const p9Data = [
-            { cbm: 1.00, qty: 150, cat: catalog[5], loaded: true, time: '10:15' },
-            { cbm: 0.86, qty: 90, cat: catalog[4], loaded: true, time: '10:20' },
-            { cbm: 0.60, qty: 60, cat: catalog[3], loaded: false, time: '' }
+            { cbm: 1.00, qty: 150, cat: catalog[5], loaded: true, time: '10:15', line: 36 },
+            { cbm: 0.86, qty: 90, cat: catalog[4], loaded: true, time: '10:20', line: 37 },
+            { cbm: 0.60, qty: 60, cat: catalog[3], loaded: false, time: '', line: 38 }
           ];
           p9Data.forEach(item => {
             const rowArr = [];
@@ -937,7 +971,8 @@
             rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${screenshotSt}-OK`;
             rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
-            rowArr[SHEET_COLUMNS.PINTU] = 'P09';
+            rowArr[SHEET_COLUMNS.LINE] = item.line; // Kolom O: Line Staging
+            rowArr[SHEET_COLUMNS.PINTU] = 'P09';    // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             rowArr[SHEET_COLUMNS.PIC] = pic;
             rowArr[SHEET_COLUMNS.CBM_ARMADA] = 37; // Kolom T: 37
@@ -947,16 +982,19 @@
 
         // Generate nomor staging lainnya per pintu (beberapa memiliki multiple baris sheet untuk menguji pivot)
         // Memasukkan contoh ST000 dan BR000 ke line-line staging secara proporsional
-        const uniqueStCount = [14, 27, 20, 16, 24, 15, 22, 18, 20, 17][index % 10] || 16;
+        const uniqueStCount = [14, 25, 20, 16, 22, 15, 21, 18][index % 8] || 16;
         const startIndex = (doorNum === 9) ? 2 : 1;
 
         for (let i = startIndex; i <= uniqueStCount; i++) {
-          // Selang-seling antara kode ST000 dan BR000 agar setiap Line (Line 1, 2, dan 3) memiliki contoh data keduanya
+          // Selang-seling antara kode ST000 dan BR000 agar setiap Line memiliki contoh data keduanya
           const isBr = (i % 2 === 0);
           const st0Code = isBr
             ? `BR0001${String(2500 + index * 40 + i).padStart(4, '0')}`
             : `ST0019${String(1700 + index * 35 + i).padStart(4, '0')}`;
           
+          // Alokasikan ke salah satu dari 3 line pintu ini (atau line kustom jika ada)
+          const targetLineForThisSt = baseLine + ((i - 1) % 3);
+
           // Beberapa ST/BR nomor memiliki 2 baris sheet untuk simulasi pivot
           const rowsForThisSt = (i % 3 === 0) ? 2 : 1;
           const targetTotalCbm = (0.5 + ((i * 13) % 210) / 100);
@@ -976,7 +1014,8 @@
             rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${st0Code}-OK`;
             rowArr[SHEET_COLUMNS.LOADED_L] = isThisLoaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = isThisLoaded ? `10:${String((i * 4) % 55).padStart(2, '0')}` : '';
-            rowArr[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`;
+            rowArr[SHEET_COLUMNS.LINE] = targetLineForThisSt; // Kolom O: Line Staging
+            rowArr[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             rowArr[SHEET_COLUMNS.PIC] = pic;
             rowArr[SHEET_COLUMNS.CBM_ARMADA] = armadaCap; // Kolom T: Kapasitas CBM Armada
@@ -1000,7 +1039,9 @@
             unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kolom K kosong / belum ada ST
             unRow[SHEET_COLUMNS.LOADED_L] = '';
             unRow[SHEET_COLUMNS.LOADED_M] = '';
-            unRow[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`;
+            unRow[SHEET_COLUMNS.LINE] = `${baseLine}-${baseLine + 2}`; // Kolom O: Line Staging
+            unRow[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
+            rowArr = unRow;
             unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             unRow[SHEET_COLUMNS.PIC] = pic;
             unRow[SHEET_COLUMNS.CBM_ARMADA] = armadaCap; // Kolom T: Kapasitas CBM Armada
@@ -1078,6 +1119,10 @@
           pic: '',
           lc: '',
           cbmArmada: 0, // Ambil data pada Kolom T
+          linesSet: new Set(),
+          lines: [],
+          lineLabel: '',
+          linePalletsMap: {},
           pallets: [],
           overflow: [],
           unassignedCbm: 0,
@@ -1213,6 +1258,13 @@
           }
         }
 
+        // Ekstrak Kolom O (LINE) untuk penempatan Line Staging
+        const lineCellRaw = getCellRawValue(row, SHEET_COLUMNS.LINE);
+        const parsedLines = parseLineNumbers(lineCellRaw);
+        if (parsedLines.length > 0) {
+          parsedLines.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+        }
+
         // Aturan 4: Cek kolom K (STATUS 2): ekstrak token yang match regex /(?:ST|BR)0\d+/i
         const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
         const st0Match = kRaw.match(/(?:ST|BR)0\d+/i);
@@ -1258,6 +1310,9 @@
           if ((!stEntry.lc || stEntry.lc === '-') && lcRoute) {
             stEntry.lc = lcRoute;
           }
+          if ((stEntry.line === null || stEntry.line === undefined) && parsedLines.length > 0) {
+            stEntry.line = parsedLines[0];
+          }
         } else {
           stEntry = {
             st0: st0Token,
@@ -1266,6 +1321,8 @@
             totalQty: qtyVal,
             rowCount: 1,
             doorNum: doorNum,
+            line: parsedLines.length > 0 ? parsedLines[0] : null,
+            lineRaw: lineCellRaw,
             rows: [rowIndex + 2],
             articlesMap: new Map()
           };
@@ -1292,25 +1349,78 @@
         }
       });
 
-      // Masukkan nomor staging unik yang sudah dipivot ke slot 1-27 dan overflow
-      TARGET_DOORS.forEach(doorNum => {
-        groupedDoors[doorNum].unassignedArticles = Array.from(groupedDoors[doorNum].unassignedArticlesMap.values());
-        groupedDoors[doorNum].loadedArticles = Array.from(groupedDoors[doorNum].loadedArticlesMap.values());
+      // Masukkan nomor staging unik yang sudah dipivot ke slot line sesuai data Kolom O
+      TARGET_DOORS.forEach((doorNum, doorIdx) => {
+        const doorObj = groupedDoors[doorNum];
+        doorObj.unassignedArticles = Array.from(doorObj.unassignedArticlesMap.values());
+        doorObj.loadedArticles = Array.from(doorObj.loadedArticlesMap.values());
+
+        // 1. Tentukan urutan Line untuk Pintu ini dari Kolom O
+        let detectedLines = Array.from(doorObj.linesSet).sort((a, b) => a - b);
+        // Fallback jika data Kolom O belum diisi di sheet: default 3 line (P08: 33-35, P09: 36-38, dst.)
+        if (detectedLines.length === 0) {
+          const baseLine = 33 + doorIdx * 3;
+          detectedLines = [baseLine, baseLine + 1, baseLine + 2];
+        }
+        doorObj.lines = detectedLines;
+
+        // Buat label string ringkas (misal: "Line 33-35", "Line 33-34", "Line 36")
+        if (detectedLines.length === 1) {
+          doorObj.lineLabel = `Line ${detectedLines[0]}`;
+        } else if (detectedLines.length > 1) {
+          const isSeq = detectedLines.every((val, i) => i === 0 || val === detectedLines[i - 1] + 1);
+          if (isSeq) {
+            doorObj.lineLabel = `Line ${detectedLines[0]}-${detectedLines[detectedLines.length - 1]}`;
+          } else {
+            doorObj.lineLabel = `Line ${detectedLines.join(', ')}`;
+          }
+        } else {
+          doorObj.lineLabel = `Line -`;
+        }
 
         const uniqueStagings = Array.from(doorStagingMaps[doorNum].values()).map(st => {
           st.articles = Array.from(st.articlesMap.values());
           return st;
         });
-        if (!groupedDoors[doorNum].lc && uniqueStagings.length > 0) {
+        if (!doorObj.lc && uniqueStagings.length > 0) {
           const found = uniqueStagings.find(s => s.lc && s.lc !== '-');
           if (found) {
-            groupedDoors[doorNum].lc = found.lc;
+            doorObj.lc = found.lc;
           }
         }
-        // Slot 1-27
-        groupedDoors[doorNum].pallets = uniqueStagings.slice(0, PALLETS_PER_DOOR);
-        // Overflow (>27)
-        groupedDoors[doorNum].overflow = uniqueStagings.slice(PALLETS_PER_DOOR);
+
+        // 2. Alokasikan pallet ST/BR ke masing-masing Line (maksimal 9 slot per line)
+        const linePallets = {};
+        detectedLines.forEach(ln => { linePallets[ln] = []; });
+        const unplaced = [];
+
+        uniqueStagings.forEach(st => {
+          if (st.line && linePallets[st.line] && linePallets[st.line].length < 9) {
+            linePallets[st.line].push(st);
+          } else {
+            unplaced.push(st);
+          }
+        });
+
+        // Alokasikan sisa pallet ke line yang masih memiliki kapasitas slot kosong
+        unplaced.forEach(st => {
+          const targetLine = detectedLines.find(ln => linePallets[ln].length < 9);
+          if (targetLine) {
+            st.line = targetLine;
+            linePallets[targetLine].push(st);
+          } else {
+            doorObj.overflow.push(st);
+          }
+        });
+
+        doorObj.linePalletsMap = linePallets;
+
+        // Flat array pallets terisi di semua line pintu ini
+        const allSlotted = [];
+        detectedLines.forEach(ln => {
+          allSlotted.push(...linePallets[ln]);
+        });
+        doorObj.pallets = allSlotted;
       });
 
       return groupedDoors;
@@ -1430,9 +1540,18 @@
       state.stats.totalCbm = totalCbm;
       state.stats.activeDoors = activeDoorsCount;
 
-      const percentage = ((totalFilled / state.stats.totalCapacity) * 100).toFixed(1);
+      let dynamicCapacity = 0;
+      TARGET_DOORS.forEach(doorNum => {
+        const doorData = state.dataDoors[doorNum];
+        dynamicCapacity += (doorData && doorData.lines && doorData.lines.length > 0)
+          ? doorData.lines.length * 9
+          : PALLETS_PER_DOOR;
+      });
+      state.stats.totalCapacity = dynamicCapacity || (TARGET_DOORS.length * PALLETS_PER_DOOR);
 
-      document.getElementById('stat-active-doors').textContent = `${activeDoorsCount} Pintu Aktif`;
+      const percentage = state.stats.totalCapacity > 0 ? ((totalFilled / state.stats.totalCapacity) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('stat-active-doors').textContent = `${activeDoorsCount} Pintu`;
       document.getElementById('stat-filled-pallets').textContent = `${totalFilled} / ${state.stats.totalCapacity} (${percentage}%)`;
       document.getElementById('stat-total-cbm').textContent = formatCbm(totalCbm);
       
@@ -1537,12 +1656,12 @@
 
         if (part2) {
           stContainer.innerHTML = `
-            <span class="text-[9.5px] sm:text-[10px] ${isBr ? 'text-sky-950 font-black' : 'text-emerald-950'} tracking-tight whitespace-nowrap leading-none">${part1}</span>
-            <span class="text-[10px] sm:text-[10.5px] ${isBr ? 'text-sky-900 font-black' : 'text-emerald-900'} tracking-wider font-black whitespace-nowrap leading-none mt-0.5">${part2}</span>
+            <span class="text-[8.5px] sm:text-[9px] ${isBr ? 'text-sky-950 font-black' : 'text-emerald-950'} tracking-tight whitespace-nowrap leading-none">${part1}</span>
+            <span class="text-[9px] sm:text-[9.5px] ${isBr ? 'text-sky-900 font-black' : 'text-emerald-900'} tracking-wider font-black whitespace-nowrap leading-none mt-0.5">${part2}</span>
           `;
         } else {
           stContainer.innerHTML = `
-            <span class="text-[10px] sm:text-[10.5px] ${isBr ? 'text-sky-950 font-black' : 'text-emerald-950'} tracking-tight whitespace-nowrap leading-none">${part1}</span>
+            <span class="text-[9px] sm:text-[9.5px] ${isBr ? 'text-sky-950 font-black' : 'text-emerald-950'} tracking-tight whitespace-nowrap leading-none">${part1}</span>
           `;
         }
         slotBox.appendChild(stContainer);
@@ -1550,8 +1669,8 @@
         // Keterangan Jumlah CBM di bawah nomor ST/BR
         const cbmBadge = document.createElement('div');
         cbmBadge.className = isBr
-          ? 'font-mono font-bold text-[8px] sm:text-[8.5px] text-sky-900 bg-sky-200/90 border border-sky-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full'
-          : 'font-mono font-bold text-[8px] sm:text-[8.5px] text-emerald-900 bg-emerald-200/90 border border-emerald-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
+          ? 'font-mono font-bold text-[7.5px] sm:text-[8px] text-sky-900 bg-sky-200/90 border border-sky-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full'
+          : 'font-mono font-bold text-[7.5px] sm:text-[8px] text-emerald-900 bg-emerald-200/90 border border-emerald-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
         cbmBadge.textContent = formatCbm(palletItem.cbm);
         slotBox.appendChild(cbmBadge);
 
@@ -1660,9 +1779,7 @@
       12: 'biru',
       13: 'kuning',
       14: 'orange',
-      15: 'merah',
-      16: 'biru',
-      17: 'orange'
+      15: 'merah'
     };
 
     /**
@@ -1804,15 +1921,19 @@
     window.toggleDoorStatus = toggleDoorStatus;
 
     /**
-     * Scroll halus dan highlight 3 kolom line yang terhubung dengan pintu
+     * Scroll halus dan highlight kolom line yang terhubung dengan pintu
      */
     function scrollToLineGroup(doorNum) {
-      const baseLine = 33 + (doorNum - 8) * 3;
-      const targetCol = document.getElementById(`line-col-${baseLine}`);
+      const doorData = state.dataDoors[doorNum];
+      const lines = (doorData && doorData.lines && doorData.lines.length > 0)
+        ? doorData.lines
+        : [33 + (doorNum - 8) * 3, 33 + (doorNum - 8) * 3 + 1, 33 + (doorNum - 8) * 3 + 2];
+      
+      const targetCol = document.getElementById(`line-col-${lines[0]}`);
       if (targetCol) {
         targetCol.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         
-        [baseLine, baseLine + 1, baseLine + 2].forEach(ln => {
+        lines.forEach(ln => {
           const el = document.getElementById(`line-col-${ln}`);
           if (el) {
             el.classList.add('ring-4', 'ring-blue-500', 'bg-blue-50/80', 'rounded-xs');
@@ -1826,8 +1947,8 @@
 
     /**
      * Render komponen Pintu & Line:
-     * 1. Pintu dipisah menjadi deretan kartu tersendiri di bagian atas
-     * 2. Line 33 - Line 62 disatukan dalam 1 kotak staging terpadu di bagian bawah
+     * 1. Pintu dipisah menjadi deretan kartu tersendiri di bagian atas (8 pintu: PINTU 08 - 15)
+     * 2. Line disatukan dalam 1 kotak staging terpadu di bagian bawah menyesuaikan data Kolom O
      */
     function renderDoorsUI() {
       const doorsContainer = document.getElementById('doors-container');
@@ -1849,6 +1970,8 @@
         const overflowCount = doorData.overflow.length;
         const armadaLabel = doorData.armada || 'BELUM ADA ARMADA';
         const baseLine = 33 + doorIdx * 3;
+        const lineLabel = doorData.lineLabel || `Line ${baseLine}-${baseLine+2}`;
+        const maxPalletSlots = doorData.lines && doorData.lines.length > 0 ? doorData.lines.length * 9 : 27;
 
         // Hitung total CBM per pintu
         let doorTotalCbm = 0;
@@ -1865,7 +1988,7 @@
 
         // Kartu Pintu Terpisah (Visual putih bersih dengan border tebal seperti screenshot)
         const doorCol = document.createElement('div');
-        doorCol.className = 'flex flex-col bg-white rounded-xl shadow-sm border-2 border-slate-900 overflow-hidden min-w-[205px] justify-between transition-colors';
+        doorCol.className = 'flex flex-col bg-white rounded-xl shadow-sm border-2 border-slate-900 overflow-hidden min-w-[195px] justify-between transition-colors';
         doorCol.id = `door-card-${doorNum}`;
 
         // Header Pintu dengan Tema Warna Terpilih & Pemilih Warna Interaktif (Merah, Kuning, Biru, Orange, Hijau)
@@ -1877,19 +2000,19 @@
           <!-- Baris Utama: PINTU XX, Line XX-XX, & Status PROSES dalam 1 baris ke kanan (ukuran pas & terbaca semua) -->
           <div class="flex items-center justify-between w-full gap-1 flex-nowrap">
             <div class="flex items-center gap-1 flex-nowrap shrink-0">
-              <span class="font-black text-[11.5px] tracking-tight leading-none whitespace-nowrap shrink-0">${formatDoorLabel(doorNum)}</span>
-              <span class="text-[9.5px] font-mono font-bold bg-black/25 text-white px-1 py-0.5 rounded whitespace-nowrap shrink-0 border border-white/20 leading-none">Line ${baseLine}-${baseLine+2}</span>
+              <span class="font-black text-[11px] tracking-tight leading-none whitespace-nowrap shrink-0">${formatDoorLabel(doorNum)}</span>
+              <span class="text-[9px] font-mono font-bold bg-black/25 text-white px-1 py-0.5 rounded whitespace-nowrap shrink-0 border border-white/20 leading-none">${lineLabel}</span>
             </div>
-            <button type="button" onclick="toggleDoorStatus(${doorNum})" title="Status: ${theme.status} (Klik untuk ganti status: PROSES / SELESAI / STANDBY)" class="${theme.badgeBg} text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded cursor-pointer transition shadow-2xs flex items-center gap-1 hover:brightness-110 whitespace-nowrap shrink-0">
+            <button type="button" onclick="toggleDoorStatus(${doorNum})" title="Status: ${theme.status} (Klik untuk ganti status: PROSES / SELESAI / STANDBY)" class="${theme.badgeBg} text-[8px] font-black uppercase px-1.5 py-0.5 rounded cursor-pointer transition shadow-2xs flex items-center gap-1 hover:brightness-110 whitespace-nowrap shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-white ${theme.pulse ? 'animate-ping' : ''} shrink-0"></span>
               <span class="whitespace-nowrap leading-none">${theme.status}</span>
             </button>
           </div>
 
           <!-- Baris Pilihan Warna: Merah, Kuning, Biru, Orange, Hijau -->
-          <div class="flex items-center justify-between pt-0.5 border-t border-black/15 text-[8.5px] font-bold flex-nowrap">
+          <div class="flex items-center justify-between pt-0.5 border-t border-black/15 text-[8px] font-bold flex-nowrap">
             <span class="opacity-90 font-mono tracking-tighter uppercase whitespace-nowrap">Warna:</span>
-            <div class="flex items-center gap-1.5 shrink-0" title="Pilih warna untuk ${formatDoorLabel(doorNum)} & Line ${baseLine}-${baseLine+2}">
+            <div class="flex items-center gap-1.5 shrink-0" title="Pilih warna untuk ${formatDoorLabel(doorNum)} & ${lineLabel}">
               <button type="button" onclick="setDoorColor(${doorNum}, 'merah')" title="Set warna Merah" class="w-3 h-3 rounded-full bg-rose-600 border ${theme.code === 'merah' ? 'border-white ring-2 ring-rose-300 scale-115' : 'border-black/30 hover:scale-120'} cursor-pointer transition shadow-2xs"></button>
               <button type="button" onclick="setDoorColor(${doorNum}, 'kuning')" title="Set warna Kuning" class="w-3 h-3 rounded-full bg-amber-400 border ${theme.code === 'kuning' ? 'border-slate-900 ring-2 ring-amber-200 scale-115' : 'border-black/30 hover:scale-120'} cursor-pointer transition shadow-2xs"></button>
               <button type="button" onclick="setDoorColor(${doorNum}, 'biru')" title="Set warna Biru" class="w-3 h-3 rounded-full bg-blue-600 border ${theme.code === 'biru' ? 'border-white ring-2 ring-blue-300 scale-115' : 'border-black/30 hover:scale-120'} cursor-pointer transition shadow-2xs"></button>
@@ -1902,20 +2025,20 @@
 
         // Header & Konten Pintu
         const headerEl = document.createElement('div');
-        headerEl.className = 'bg-white p-2.5 text-center flex flex-col items-center justify-center flex-1';
+        headerEl.className = 'bg-white p-2 text-center flex flex-col items-center justify-center flex-1';
 
         // Nomor LC
         const lcVal = doorData.lc || (pallets[0] && pallets[0].lc !== '-' ? pallets[0].lc : '-');
         const lcLabel = document.createElement('div');
-        lcLabel.className = 'w-full mt-1 px-2 py-0.5 bg-blue-50 text-blue-900 border border-blue-200/90 text-[11px] font-mono font-bold rounded tracking-tight max-w-full truncate shadow-2xs';
-        lcLabel.innerHTML = `<span class="text-[9.5px] font-semibold text-slate-500 uppercase mr-1">No. LC:</span>${lcVal}`;
+        lcLabel.className = 'w-full mt-1 px-2 py-0.5 bg-blue-50 text-blue-900 border border-blue-200/90 text-[10.5px] font-mono font-bold rounded tracking-tight max-w-full truncate shadow-2xs';
+        lcLabel.innerHTML = `<span class="text-[9px] font-semibold text-slate-500 uppercase mr-1">No. LC:</span>${lcVal}`;
         lcLabel.title = `Nomor LC (Loading Card) / Route: ${lcVal}`;
 
         // Tipe Armada
         const armadaBadge = document.createElement('div');
         armadaBadge.className = doorData.armada 
-          ? 'w-full mt-1 px-2 py-0.5 bg-slate-900 text-amber-300 text-[11px] font-bold rounded tracking-wide max-w-full truncate'
-          : 'w-full mt-1 px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-medium rounded italic border border-slate-200';
+          ? 'w-full mt-1 px-2 py-0.5 bg-slate-900 text-amber-300 text-[10.5px] font-bold rounded tracking-wide max-w-full truncate'
+          : 'w-full mt-1 px-2 py-0.5 bg-slate-100 text-slate-400 text-[9.5px] font-medium rounded italic border border-slate-200';
         armadaBadge.textContent = armadaLabel;
         armadaBadge.title = `Tipe Armada: ${armadaLabel}`;
 
@@ -1923,14 +2046,14 @@
         const picVal = doorData.pic || '';
         const picBadge = document.createElement('div');
         picBadge.className = picVal
-          ? 'w-full mt-0.5 px-2 py-0.5 bg-emerald-50 text-emerald-950 border border-emerald-300/80 text-[10px] font-bold rounded tracking-tight max-w-full truncate flex items-center justify-center gap-1 shadow-2xs'
-          : 'w-full mt-0.5 px-2 py-0.5 bg-slate-50 text-slate-400 border border-slate-200 text-[9.5px] font-medium rounded italic max-w-full truncate';
+          ? 'w-full mt-0.5 px-2 py-0.5 bg-emerald-50 text-emerald-950 border border-emerald-300/80 text-[9.5px] font-bold rounded tracking-tight max-w-full truncate flex items-center justify-center gap-1 shadow-2xs'
+          : 'w-full mt-0.5 px-2 py-0.5 bg-slate-50 text-slate-400 border border-slate-200 text-[9px] font-medium rounded italic max-w-full truncate';
         
         if (picVal) {
-          picBadge.innerHTML = `<span class="text-[8.5px] font-extrabold uppercase text-emerald-700 tracking-wider">PIC:</span><span class="font-bold truncate text-slate-900">${picVal}</span>`;
+          picBadge.innerHTML = `<span class="text-[8px] font-extrabold uppercase text-emerald-700 tracking-wider">PIC:</span><span class="font-bold truncate text-slate-900">${picVal}</span>`;
           picBadge.title = `PIC yang bertugas: ${picVal} (Ambil data pada Kolom S)`;
         } else {
-          picBadge.innerHTML = `<span class="text-[8.5px] uppercase text-slate-400 mr-1">PIC:</span><span class="text-slate-400">-</span>`;
+          picBadge.innerHTML = `<span class="text-[8px] uppercase text-slate-400 mr-1">PIC:</span><span class="text-slate-400">-</span>`;
           picBadge.title = 'PIC bertugas belum terisi (Kolom S)';
         }
 
@@ -1940,19 +2063,19 @@
 
         // Baris 1: Slot Terisi & Total CBM Staging
         const counterRow = document.createElement('div');
-        counterRow.className = 'w-full flex items-center justify-between px-2 py-0.5 bg-blue-50/80 border border-blue-200/90 rounded text-[10.5px] font-mono shadow-2xs';
+        counterRow.className = 'w-full flex items-center justify-between px-2 py-0.5 bg-blue-50/80 border border-blue-200/90 rounded text-[10px] font-mono shadow-2xs';
         
         const countWrapper = document.createElement('div');
         countWrapper.className = 'flex items-center gap-1';
 
         const countSpan = document.createElement('span');
         countSpan.className = 'font-bold text-slate-700';
-        countSpan.textContent = `${pallets.length}/27 STG`;
+        countSpan.textContent = `${pallets.length}/${maxPalletSlots} STG`;
         countWrapper.appendChild(countSpan);
 
         if (overflowCount > 0) {
           const overflowBadge = document.createElement('button');
-          overflowBadge.className = 'bg-amber-500 hover:bg-amber-600 text-white font-bold text-[9px] px-1 py-0.2 rounded cursor-pointer transition shadow-xs flex items-center';
+          overflowBadge.className = 'bg-amber-500 hover:bg-amber-600 text-white font-bold text-[8.5px] px-1 py-0.2 rounded cursor-pointer transition shadow-xs flex items-center';
           overflowBadge.innerHTML = `+${overflowCount}`;
           overflowBadge.title = `${overflowCount} nomor staging tidak muat di slot (klik untuk lihat data)`;
           overflowBadge.onclick = () => showOverflowModal(doorNum, doorData);
@@ -1961,7 +2084,7 @@
         counterRow.appendChild(countWrapper);
 
         const cbmBadge = document.createElement('span');
-        cbmBadge.className = 'font-black text-blue-700 text-[10.5px]';
+        cbmBadge.className = 'font-black text-blue-700 text-[10px]';
         cbmBadge.textContent = formatCbm(doorTotalCbm);
         cbmBadge.title = `Total CBM ${formatDoorLabel(doorNum)}: ${formatCbm(doorTotalCbm)}`;
         counterRow.appendChild(cbmBadge);
@@ -1973,11 +2096,11 @@
 
         const unassignedBadge = document.createElement('div');
         unassignedBadge.className = hasUnassigned
-          ? 'w-full flex items-center justify-between px-2 py-0.5 rounded text-[10.5px] font-mono border border-amber-300 bg-amber-50 text-amber-950 shadow-2xs cursor-pointer hover:bg-amber-100/90 transition select-none'
-          : 'w-full flex items-center justify-between px-2 py-0.5 rounded text-[10.5px] font-mono border border-slate-200 bg-slate-50 text-slate-500 select-none';
+          ? 'w-full flex items-center justify-between px-2 py-0.5 rounded text-[10px] font-mono border border-amber-300 bg-amber-50 text-amber-950 shadow-2xs cursor-pointer hover:bg-amber-100/90 transition select-none'
+          : 'w-full flex items-center justify-between px-2 py-0.5 rounded text-[10px] font-mono border border-slate-200 bg-slate-50 text-slate-500 select-none';
 
         unassignedBadge.innerHTML = `
-          <span class="text-[10px] font-bold uppercase tracking-tight relative top-[1px] inline-block ${hasUnassigned ? 'text-amber-800' : 'text-slate-400'}">BELUM ST:</span>
+          <span class="text-[9.5px] font-bold uppercase tracking-tight relative top-[1px] inline-block ${hasUnassigned ? 'text-amber-800' : 'text-slate-400'}">BELUM ST:</span>
           <span class="font-black ${hasUnassigned ? 'text-amber-950' : 'text-slate-600'}">${formatCbm(unassignedCbm)}</span>
         `;
         unassignedBadge.title = `Kolom K Kosong / Belum Ada ST/BR: ${formatCbm(unassignedCbm)} (${unassignedCount} baris sheet, ${doorData.unassignedQty || 0} pcs)${hasUnassigned ? ' - Klik untuk lihat rincian barang' : ''}`;
@@ -2017,25 +2140,25 @@
         progressWidget.title = `Loading Progress ${formatDoorLabel(doorNum)}: Kapasitas ${capacity} CBM (${armadaLabel})\nSudah Dimuat (Kolom L & M): ${formatCbm(loadedCbm)} (${loadedPercent.toFixed(1)}%)\nSisa Muatan: ${formatNumber(sisaCbm)}\nKurang / Belum Muat: ${kurangPercent.toFixed(1)}%\nKlik untuk melihat rincian muat`;
 
         progressWidget.innerHTML = `
-          <div class="flex items-center justify-between text-[10px] font-mono leading-none">
+          <div class="flex items-center justify-between text-[9.5px] font-mono leading-none">
             <div class="flex items-center gap-1.5">
               <span class="relative flex h-2 w-2">
                 <span class="${pingColor} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 ${dotColor}"></span>
               </span>
-              <span class="text-[9.5px] font-bold uppercase tracking-tight text-slate-300">KURANG:</span>
-              <span class="font-black ${statusColor} text-[11px]">${kurangPercent.toFixed(1)}%</span>
+              <span class="text-[9px] font-bold uppercase tracking-tight text-slate-300">KURANG:</span>
+              <span class="font-black ${statusColor} text-[10.5px]">${kurangPercent.toFixed(1)}%</span>
             </div>
-            <div class="text-[9.5px] font-mono text-slate-300">
-              <span class="text-slate-400 text-[8.5px]">Sisa</span> <span class="font-bold text-amber-200">${formatNumber(sisaCbm)}</span>
+            <div class="text-[9px] font-mono text-slate-300">
+              <span class="text-slate-400 text-[8px]">Sisa</span> <span class="font-bold text-amber-200">${formatNumber(sisaCbm)}</span>
             </div>
           </div>
 
-          <div class="relative w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/90 shadow-inner">
+          <div class="relative w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/90 shadow-inner">
             <div class="h-full rounded-full transition-all duration-700 ease-out ${isFullyLoaded ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-400'} animated-stripes" style="width: ${loadedPercent}%;"></div>
           </div>
 
-          <div class="flex items-center justify-between text-[8.5px] font-mono text-slate-400 px-0.5 leading-none">
+          <div class="flex items-center justify-between text-[8px] font-mono text-slate-400 px-0.5 leading-none">
             <span>Muat: <strong class="text-cyan-300 font-bold">${formatCbm(loadedCbm)}</strong> (${loadedPercent.toFixed(1)}%)</span>
             <span class="text-slate-300 font-semibold">${capacity} CBM</span>
           </div>
@@ -2053,9 +2176,9 @@
 
         // Tombol tautan fokus cepat ke Grup Line terkait
         const focusLineBtn = document.createElement('button');
-        focusLineBtn.className = 'w-full mt-1.5 py-1 px-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 hover:text-slate-900 text-[10px] font-bold rounded border border-slate-300 flex items-center justify-center gap-1 transition shadow-2xs cursor-pointer';
+        focusLineBtn.className = 'w-full mt-1.5 py-1 px-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 hover:text-slate-900 text-[9.5px] font-bold rounded border border-slate-300 flex items-center justify-center gap-1 transition shadow-2xs cursor-pointer';
         focusLineBtn.innerHTML = `
-          <span>Fokus Line ${baseLine}-${baseLine+2}</span>
+          <span>Fokus ${lineLabel}</span>
           <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
@@ -2073,62 +2196,88 @@
       });
 
       // =======================================================================
-      // 2. RENDER SEKSI LINE STAGING (1 KOTAK BESAR UNTUK LINE 33 - LINE 62 TANPA SKAT)
+      // 2. RENDER SEKSI LINE STAGING (1 KOTAK BESAR MENYESUAIKAN DATA DARI KOLOM O)
       // =======================================================================
-      // Seluruh 30 Line disusun berjajar langsung dalam 1 wadah kontainer tanpa pemisah / skat
-      linesContainer.className = 'grid grid-cols-[repeat(30,minmax(66px,1fr))] gap-1.5 p-3 bg-slate-100/70 w-full min-w-[2180px] items-start';
-
+      const allRenderedLines = [];
       TARGET_DOORS.forEach((doorNum, doorIdx) => {
-        const doorData = state.dataDoors[doorNum] || { armada: '', pallets: [], overflow: [] };
-        const pallets = doorData.pallets;
-        const baseLine = 33 + doorIdx * 3;
-        const stagingConfigs = [
-          { name: `Line ${baseLine}`, lineNum: baseLine, startSlot: 1, endSlot: 9 },
-          { name: `Line ${baseLine + 1}`, lineNum: baseLine + 1, startSlot: 10, endSlot: 18 },
-          { name: `Line ${baseLine + 2}`, lineNum: baseLine + 2, startSlot: 19, endSlot: 27 },
-        ];
-
-        stagingConfigs.forEach(stg => {
-          const lineCol = document.createElement('div');
-          lineCol.id = `line-col-${stg.lineNum}`;
-          lineCol.className = 'flex flex-col gap-1 transition-all duration-200';
-
-          // Dapatkan tema warna untuk Line ini (mewarisi Pintu atau warna kustom jika diset manual)
-          const lineTheme = getLineTheme(stg.lineNum, doorNum);
-
-          // Header Line dengan warna dinamis & pemilih warna instan (Merah, Kuning, Biru, Orange)
-          const stgHeader = document.createElement('div');
-          stgHeader.className = `${lineTheme.lineHeaderBg} text-center py-1 px-1 rounded-t-xs tracking-wider shadow-2xs transition-colors select-none flex flex-col items-center justify-center gap-0.5 cursor-pointer`;
-          stgHeader.onclick = () => cycleLineColor(stg.lineNum, doorNum);
-          stgHeader.title = `${stg.name} (${lineTheme.name}) • Terhubung ke ${formatDoorLabel(doorNum)}\nKlik untuk rotasi warna atau klik bulatan warna di bawah (Merah / Kuning / Biru / Orange)`;
-
-          stgHeader.innerHTML = `
-            <div class="flex items-center justify-between w-full px-0.5">
-              <span class="text-[10.5px] font-black leading-none">${stg.name}</span>
-              <span class="w-2.5 h-2.5 rounded-full ${lineTheme.dotBg} border border-white/90 shadow-2xs flex-shrink-0" title="Warna saat ini: ${lineTheme.name}${lineTheme.isCustom ? ' (Kustom)' : ' (Ikut Pintu)'}"></span>
-            </div>
-            <div class="flex items-center justify-center gap-1 mt-0.5 w-full pt-0.5 border-t border-black/15" onclick="event.stopPropagation()">
-              <button type="button" onclick="setLineColor(${stg.lineNum}, 'merah')" title="${stg.name}: Ganti ke Merah" class="w-2.5 h-2.5 rounded-full bg-rose-600 border ${lineTheme.code === 'merah' ? 'border-white ring-1.5 ring-rose-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-              <button type="button" onclick="setLineColor(${stg.lineNum}, 'kuning')" title="${stg.name}: Ganti ke Kuning" class="w-2.5 h-2.5 rounded-full bg-amber-400 border ${lineTheme.code === 'kuning' ? 'border-slate-900 ring-1.5 ring-amber-200 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-              <button type="button" onclick="setLineColor(${stg.lineNum}, 'biru')" title="${stg.name}: Ganti ke Biru" class="w-2.5 h-2.5 rounded-full bg-blue-600 border ${lineTheme.code === 'biru' ? 'border-white ring-1.5 ring-blue-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-              <button type="button" onclick="setLineColor(${stg.lineNum}, 'orange')" title="${stg.name}: Ganti ke Orange" class="w-2.5 h-2.5 rounded-full bg-orange-500 border ${lineTheme.code === 'orange' ? 'border-white ring-1.5 ring-orange-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-            </div>
-          `;
-          lineCol.appendChild(stgHeader);
-
-          for (let slotNum = stg.startSlot; slotNum <= stg.endSlot; slotNum++) {
-            const palletIndex = slotNum - 1;
-            const palletItem = pallets[palletIndex];
-            const slotBox = createPalletSlotElement(slotNum, palletItem, doorNum, stg.name, doorData);
-            lineCol.appendChild(slotBox);
-          }
-
-          linesContainer.appendChild(lineCol);
+        const doorData = state.dataDoors[doorNum] || { armada: '', pallets: [], lines: [] };
+        const lines = (doorData.lines && doorData.lines.length > 0)
+          ? doorData.lines
+          : [33 + doorIdx * 3, 33 + doorIdx * 3 + 1, 33 + doorIdx * 3 + 2];
+        
+        lines.forEach((lineNum, lIdx) => {
+          allRenderedLines.push({
+            lineNum,
+            doorNum,
+            doorData,
+            lineIndexInDoor: lIdx
+          });
         });
       });
 
+      const totalLines = allRenderedLines.length;
+      const minColWidth = 66;
+      const minWidthPx = Math.max(1680, totalLines * minColWidth);
+
+      // Sinkronisasi lebar area dock dan kontainer line
+      const workspace = document.getElementById('dock-workspace');
+      if (workspace) workspace.style.minWidth = `${minWidthPx}px`;
+      doorsContainer.style.minWidth = `${minWidthPx}px`;
+      const linesSec = document.getElementById('lines-unified-section');
+      if (linesSec) linesSec.style.minWidth = `${minWidthPx}px`;
+
+      linesContainer.className = 'grid gap-1.5 p-3 bg-slate-100/70 w-full items-start';
+      linesContainer.style.gridTemplateColumns = `repeat(${totalLines}, minmax(${minColWidth}px, 1fr))`;
+      linesContainer.style.minWidth = `${minWidthPx}px`;
+
+      allRenderedLines.forEach(item => {
+        const { lineNum, doorNum, doorData } = item;
+        const lineName = `Line ${lineNum}`;
+        const lineCol = document.createElement('div');
+        lineCol.id = `line-col-${lineNum}`;
+        lineCol.className = 'flex flex-col gap-1 transition-all duration-200';
+
+        // Tema warna untuk Line ini (bisa diubah bebas: Merah, Kuning, Biru, Orange, Hijau)
+        const lineTheme = getLineTheme(lineNum, doorNum);
+
+        // Header Line dengan warna dinamis & pemilih warna instan
+        const stgHeader = document.createElement('div');
+        stgHeader.className = `${lineTheme.lineHeaderBg} text-center py-1 px-1 rounded-t-xs tracking-wider shadow-2xs transition-colors select-none flex flex-col items-center justify-center gap-0.5 cursor-pointer`;
+        stgHeader.onclick = () => cycleLineColor(lineNum, doorNum);
+        stgHeader.title = `${lineName} (${lineTheme.name}) • Terhubung ke ${formatDoorLabel(doorNum)}\nKlik untuk rotasi warna atau klik bulatan warna di bawah (Merah / Kuning / Biru / Orange / Hijau)`;
+
+        stgHeader.innerHTML = `
+          <div class="flex items-center justify-between w-full px-0.5">
+            <span class="text-[10px] font-black leading-none">${lineName}</span>
+            <span class="w-2.5 h-2.5 rounded-full ${lineTheme.dotBg} border border-white/90 shadow-2xs shrink-0" title="Warna saat ini: ${lineTheme.name}${lineTheme.isCustom ? ' (Kustom)' : ' (Ikut Pintu)'}"></span>
+          </div>
+          <div class="flex items-center justify-center gap-1 mt-0.5 w-full pt-0.5 border-t border-black/15" onclick="event.stopPropagation()">
+            <button type="button" onclick="setLineColor(${lineNum}, 'merah')" title="${lineName}: Ganti ke Merah" class="w-2.5 h-2.5 rounded-full bg-rose-600 border ${lineTheme.code === 'merah' ? 'border-white ring-1.5 ring-rose-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
+            <button type="button" onclick="setLineColor(${lineNum}, 'kuning')" title="${lineName}: Ganti ke Kuning" class="w-2.5 h-2.5 rounded-full bg-amber-400 border ${lineTheme.code === 'kuning' ? 'border-slate-900 ring-1.5 ring-amber-200 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
+            <button type="button" onclick="setLineColor(${lineNum}, 'biru')" title="${lineName}: Ganti ke Biru" class="w-2.5 h-2.5 rounded-full bg-blue-600 border ${lineTheme.code === 'biru' ? 'border-white ring-1.5 ring-blue-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
+            <button type="button" onclick="setLineColor(${lineNum}, 'orange')" title="${lineName}: Ganti ke Orange" class="w-2.5 h-2.5 rounded-full bg-orange-500 border ${lineTheme.code === 'orange' ? 'border-white ring-1.5 ring-orange-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
+            <button type="button" onclick="setLineColor(${lineNum}, 'hijau')" title="${lineName}: Ganti ke Hijau" class="w-2.5 h-2.5 rounded-full bg-emerald-600 border ${lineTheme.code === 'hijau' ? 'border-white ring-1.5 ring-emerald-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
+          </div>
+        `;
+        lineCol.appendChild(stgHeader);
+
+        // Ambil pallet untuk line ini dari linePalletsMap (maks 9 slot per line)
+        const linePallets = (doorData.linePalletsMap && doorData.linePalletsMap[lineNum])
+          ? doorData.linePalletsMap[lineNum]
+          : [];
+
+        for (let slotIdx = 0; slotIdx < 9; slotIdx++) {
+          const slotNum = slotIdx + 1;
+          const palletItem = linePallets[slotIdx];
+          const slotBox = createPalletSlotElement(slotNum, palletItem, doorNum, lineName, doorData);
+          lineCol.appendChild(slotBox);
+        }
+
+        linesContainer.appendChild(lineCol);
+      });
+
       // Update ringkasan ST / BR di header 1 Kotak Line
-      const totalCapacity = TARGET_DOORS.length * PALLETS_PER_DOOR; // 270 slot
+      const totalCapacity = totalLines * 9;
       const totalFilled = totalStCount + totalBrCount;
       const totalEmpty = Math.max(0, totalCapacity - totalFilled);
 
@@ -2138,6 +2287,18 @@
       if (summaryBrEl) summaryBrEl.textContent = totalBrCount;
       const summaryEmptyEl = document.getElementById('summary-empty-count');
       if (summaryEmptyEl) summaryEmptyEl.textContent = totalEmpty;
+
+      // Update judul dinamis 1 Kotak Line
+      const firstLineNum = allRenderedLines[0]?.lineNum;
+      const lastLineNum = allRenderedLines[allRenderedLines.length - 1]?.lineNum;
+      const linesTitleEl = document.getElementById('lines-main-title');
+      if (linesTitleEl && firstLineNum !== undefined && lastLineNum !== undefined) {
+        linesTitleEl.textContent = `LINE ${firstLineNum} - LINE ${lastLineNum} (STAGING OUTBOUND)`;
+      }
+      const linesSubEl = document.getElementById('lines-main-subtitle');
+      if (linesSubEl) {
+        linesSubEl.textContent = `1 Kotak Staging Terpadu • ${totalLines} Line (9 Slot Pallet / Line • Data Kolom O)`;
+      }
 
       updateHeaderStats();
     }
