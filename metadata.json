@@ -1,0 +1,8 @@
+{
+  "name": "Remix Staging Outbound Gudang",
+  "description": "Dashboard monitoring staging outbound dermaga gudang real-time terintegrasi Google Sheets (gviz API).",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
