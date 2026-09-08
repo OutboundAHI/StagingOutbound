@@ -414,7 +414,7 @@
                   </span>
                 </div>
                 <p class="text-[11px] text-slate-300">
-                  Area Staging Pallet: Kolom O (LINE OUTBOUND) • Kolom K (Data ST00 / BR00 / LD00 / DS00) • Kolom Q (Pintu 08-15) • Klik nomor Pallet untuk rincian barang pivot
+                  Area Staging Pallet: Kolom O (LINE OUTBOUND) • Kolom K (Data ST00 / BR00 / DS00) • Kolom Q (Pintu 08-15) • Klik nomor Pallet untuk rincian barang pivot
                 </p>
               </div>
             </div>
@@ -742,7 +742,7 @@
       QTY: 4,          // Kolom E: Kuantitas Barang (QTY)
       ROUTE_LC: 5,     // Kolom F: Header asli "ROUTE" -> Berfungsi sebagai Nomor LC (Loading Card)
       CUBE_CBM: 6,     // Kolom G: Header asli "CUBE"  -> Volume CBM desimal
-      STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" -> Sumber utama data Pallet (ST00, BR00, LD00, DS00)
+      STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" -> Sumber utama data Pallet (ST00, BR00, DS00)
       LOADED_L: 11,    // Kolom L: Data Loading / Jam Load / Status Muat
       LOADED_M: 12,    // Kolom M: Data Loading / Checker / Status Muat
       LINE_O: 14,      // Kolom O: LINE OUTBOUND -> Sumber utama Nomor Line Staging (misal: 42, 33-35)
@@ -759,7 +759,7 @@
      * Aturan ketat:
      * - Jika kosong, "-", "0", null, undefined -> kembalikan [] (KOSONG)
      * - Hanya nomor line staging yang valid di dermaga gudang (Line 33 s/d Line 62) yang diakui.
-     * - Jika Kolom O kosong, pallet (ST00/BR00/DS00/LD00) tidak boleh memiliki line dan tidak boleh muncul di slot line dashboard!
+     * - Jika Kolom O kosong, pallet (ST00/BR00/DS00) tidak boleh memiliki line dan tidak boleh muncul di slot line dashboard!
      */
     function parseLineNumbers(raw) {
       if (raw === undefined || raw === null) return [];
@@ -812,7 +812,7 @@
         if (colId === 'O' || label.includes('LINE OUTBOUND') || (label.includes('LINE') && (idx === 14 || idx === 15))) {
           SHEET_COLUMNS.LINE_O = idx;
         }
-        // Kolom K: STATUS 2 (Sumber utama Pallet ST00, BR00, LD00, DS00)
+        // Kolom K: STATUS 2 (Sumber utama Pallet ST00, BR00, DS00)
         if (colId === 'K' || label.includes('STATUS 2') || label === 'STATUS2') {
           SHEET_COLUMNS.STATUS_2 = idx;
         }
@@ -1024,14 +1024,13 @@
       // =======================================================================
       // DATA SIMULASI SESUAI ATURAN MUTLAK PENGGUNA:
       // "jika contoh ST00 ada didata dikolom K dan Line ada dikolom O maka didashboard ada,
-      //  jika ST00/BR00/DS00/LD00 ada didata kolom K dan Line tidak ada isinya dikolom O maka didashboard kosong"
+      //  jika ST00/BR00/DS00 ada didata kolom K dan Line tidak ada isinya dikolom O maka didashboard kosong"
       // =======================================================================
 
       // PINTU 08 (Line 33, 34, 35):
       // - Line 33: Ada di Kolom O (33), ada ST00192825 di Kolom K -> DI DASHBOARD LINE 33 ADA!
       // - BR00019286 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG (tidak ada nilainya)!
       // - DS00663570 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG (tidak ada nilainya)!
-      // - LD00146839 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG (tidak ada nilainya)!
       demoRows.push({
         [SHEET_COLUMNS.ARTICLE]: catalog[0].article,
         [SHEET_COLUMNS.NAMA_BARANG]: catalog[0].name,
@@ -1073,23 +1072,6 @@
         [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
         [SHEET_COLUMNS.CUBE_CBM]: 1.30,
         [SHEET_COLUMNS.STATUS_2]: 'DS00663570', // Ada di Kolom K
-        [SHEET_COLUMNS.LOADED_L]: '',
-        [SHEET_COLUMNS.LOADED_M]: '',
-        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> DI DASHBOARD TIDAK ADA NILAINYA (KOSONG)!
-        [SHEET_COLUMNS.PINTU]: 'P08',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
-        [SHEET_COLUMNS.PIC]: 'Bambang H.',
-        [SHEET_COLUMNS.CBM_ARMADA]: 15
-      });
-
-      // Data LD00 di Pintu 08: Line di Kolom O sengaja KOSONG
-      demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[3].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[3].name,
-        [SHEET_COLUMNS.QTY]: 70,
-        [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.05,
-        [SHEET_COLUMNS.STATUS_2]: 'LD00146839', // Ada di Kolom K
         [SHEET_COLUMNS.LOADED_L]: '',
         [SHEET_COLUMNS.LOADED_M]: '',
         [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> DI DASHBOARD TIDAK ADA NILAINYA (KOSONG)!
@@ -1318,19 +1300,6 @@
         [SHEET_COLUMNS.CUBE_CBM]: 1.60,
         [SHEET_COLUMNS.STATUS_2]: 'ST00193550',
         [SHEET_COLUMNS.LINE_O]: 51,             // ADA di Kolom O (51) -> DI DASHBOARD ADA!
-        [SHEET_COLUMNS.PINTU]: 'P14',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-40',
-        [SHEET_COLUMNS.PIC]: 'Eko Saputra',
-        [SHEET_COLUMNS.CBM_ARMADA]: 48
-      });
-      demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[9].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[9].name,
-        [SHEET_COLUMNS.QTY]: 75,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L080',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.15,
-        [SHEET_COLUMNS.STATUS_2]: 'LD00124890', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
         [SHEET_COLUMNS.PINTU]: 'P14',
         [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-40',
         [SHEET_COLUMNS.PIC]: 'Eko Saputra',
@@ -1578,11 +1547,18 @@
         // ATURAN MUTLAK USER:
         // "jika contoh ST00 ada didata dikolom K dan Line ada dikolom O maka didashboard ada,
         //  jika ST00 ada didata kolom K dan Line tidak ada isinya diikolom O maka didashboard kosong"
+        // "untuk nilai LD00 diline bisa dihapus saja karena tidak terpakai"
         // =====================================================================
         
-        // Ekstrak data ST00, BR00, LD00, DS00 HANYA DARI KOLOM K (STATUS 2)
+        // Ekstrak data ST00, BR00, DS00 HANYA DARI KOLOM K (STATUS 2)
         const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
-        const st0Match = kRaw.match(/(?:ST|BR|LD|DS)\s*0?\d+/i);
+
+        // Nilai LD00 dihapus dari line karena tidak terpakai
+        if (/^LD\s*0?\d+/i.test(kRaw)) {
+          return;
+        }
+
+        const st0Match = kRaw.match(/(?:ST|BR|DS)\s*0?\d+/i);
 
         // KONDISI 1: Jika Kolom O KOSONG (tidak ada nomor line), maka di dashboard slot line HARUS KOSONG!
         // Jangan pernah menempatkan baris ini ke slot line manapun!
@@ -1613,7 +1589,7 @@
           return; // Selesai, baris tanpa nomor line di Kolom O TIDAK BOLEH MASUK KE SLOT LINE!
         }
 
-        // KONDISI 2: Jika Kolom O terisi nomor line tetapi Kolom K belum terisi kode pallet (ST/BR/LD/DS):
+        // KONDISI 2: Jika Kolom O terisi nomor line tetapi Kolom K belum terisi kode pallet (ST/BR/DS):
         if (!st0Match) {
           groupedDoors[doorNum].unassignedCbm += cbmVal;
           groupedDoors[doorNum].unassignedQty += qtyVal;
@@ -1642,9 +1618,9 @@
         }
 
         // KONDISI 3: KEDUA SYARAT TERPENUHI (Ada kode pallet di Kolom K DAN ada nomor line di Kolom O)!
-        const st0Token = st0Match[0].replace(/\s+/g, '').toUpperCase(); // Misal ST00192520, BR00079395, LD00146839, DS00663570
+        const st0Token = st0Match[0].replace(/\s+/g, '').toUpperCase(); // Misal ST00192520, BR00079395, DS00663570
 
-        // PIVOT & AGREGASI: 1 perwakilan per nomor ST/BR/LD/DS per pintu & line, CBM dari kolom G dijumlahkan
+        // PIVOT & AGREGASI: 1 perwakilan per nomor ST/BR/DS per pintu & line, CBM dari kolom G dijumlahkan
         const doorMap = doorStagingMaps[doorNum];
         let stEntry;
         if (doorMap.has(st0Token)) {
@@ -1985,7 +1961,6 @@
       const upperSt = rawSt.toUpperCase();
       const isBr = isFilled && upperSt.startsWith('BR');
       const isDs = isFilled && upperSt.startsWith('DS');
-      const isLd = isFilled && upperSt.startsWith('LD');
 
       let slotThemeClass = 'slot-filled bg-emerald-100 border-emerald-500 text-emerald-950 font-bold shadow-xs cursor-pointer';
       let slotIndexBadgeClass = 'text-emerald-700 font-bold';
@@ -2002,11 +1977,6 @@
         slotIndexBadgeClass = 'text-amber-700 font-bold';
         multiBadgeClass = 'text-amber-900 bg-amber-200/90';
         cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-amber-900 bg-amber-200/90 border border-amber-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
-      } else if (isLd) {
-        slotThemeClass = 'slot-filled slot-ld bg-purple-100 border-purple-500 text-purple-950 font-bold shadow-xs cursor-pointer';
-        slotIndexBadgeClass = 'text-purple-700 font-bold';
-        multiBadgeClass = 'text-purple-900 bg-purple-200/90';
-        cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-purple-900 bg-purple-200/90 border border-purple-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
       }
 
       const slotBox = document.createElement('div');
@@ -2051,16 +2021,16 @@
           }
         });
 
-        // Nomor ST0/BR0/LD0/DS0 ditampilkan utuh tanpa terpotong titik (...)
+        // Nomor ST0/BR0/DS0 ditampilkan utuh tanpa terpotong titik (...)
         const stContainer = document.createElement('div');
         stContainer.className = 'flex flex-col items-center justify-center font-mono font-black select-all w-full my-auto leading-[1.15] px-0.5';
         
         let part1 = '';
         let part2 = '';
-        if ((upperSt.startsWith('BR000') || upperSt.startsWith('ST000') || upperSt.startsWith('LD000') || upperSt.startsWith('DS000')) && rawSt.length > 5) {
+        if ((upperSt.startsWith('BR000') || upperSt.startsWith('ST000') || upperSt.startsWith('DS000')) && rawSt.length > 5) {
           part1 = rawSt.substring(0, 5);
           part2 = rawSt.substring(5);
-        } else if ((upperSt.startsWith('BR00') || upperSt.startsWith('ST00') || upperSt.startsWith('LD00') || upperSt.startsWith('DS00')) && rawSt.length > 6) {
+        } else if ((upperSt.startsWith('BR00') || upperSt.startsWith('ST00') || upperSt.startsWith('DS00')) && rawSt.length > 6) {
           part1 = rawSt.substring(0, 6);
           part2 = rawSt.substring(6);
         } else if (rawSt.length > 6) {
@@ -2079,9 +2049,6 @@
         } else if (isDs) {
           textColor1 = 'text-amber-950 font-black';
           textColor2 = 'text-amber-900 font-black';
-        } else if (isLd) {
-          textColor1 = 'text-purple-950 font-black';
-          textColor2 = 'text-purple-900 font-black';
         }
 
         if (part2) {
@@ -2901,7 +2868,6 @@
       const upperCode = (palletItem.st0 || '').toUpperCase();
       const isBr = upperCode.startsWith('BR');
       const isDs = upperCode.startsWith('DS');
-      const isLd = upperCode.startsWith('LD');
 
       const typeBadge = document.getElementById('detail-code-type-badge');
       if (typeBadge) {
@@ -2911,9 +2877,6 @@
         } else if (isDs) {
           typeBadge.textContent = 'DS00';
           typeBadge.className = 'w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold font-mono text-[10px]';
-        } else if (isLd) {
-          typeBadge.textContent = 'LD00';
-          typeBadge.className = 'w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 font-bold font-mono text-[10px]';
         } else {
           typeBadge.textContent = 'ST00';
           typeBadge.className = 'w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold font-mono text-[10px]';
@@ -2925,7 +2888,6 @@
       let badgeTheme = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
       if (isBr) badgeTheme = 'bg-sky-500/20 text-sky-300 border-sky-500/30';
       else if (isDs) badgeTheme = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
-      else if (isLd) badgeTheme = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
       rowCountBadge.className = `px-2 py-0.5 rounded-full text-[11px] font-bold ${badgeTheme} border font-mono`;
       const slotText = typeof slotNum === 'number' ? `Slot #${slotNum < 10 ? '0' + slotNum : slotNum}` : slotNum;
       locationSub.textContent = `${formatDoorLabel(doorNum)} • ${stgName} • ${slotText}`;
