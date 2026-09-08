@@ -410,11 +410,11 @@
                     LINE STAGING OUTBOUND (LINE 33 - LINE 62)
                   </h2>
                   <span id="lines-main-subtitle" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded">
-                    1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Data Kolom P & Kolom O)
+                    1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Line dari Kolom O, Pallet dari Kolom K)
                   </span>
                 </div>
                 <p class="text-[11px] text-slate-300">
-                  Area Staging Pallet: Kolom O (LINE OUTBOUND) • Kolom P (LPN ST/BR Pallet) • Kolom Q (Pintu 08-15) • Klik nomor ST/BR untuk rincian barang pivot
+                  Area Staging Pallet: Kolom O (LINE OUTBOUND) • Kolom K (Data ST00 / BR00 / LD00 / DS00) • Kolom Q (Pintu 08-15) • Klik nomor Pallet untuk rincian barang pivot
                 </p>
               </div>
             </div>
@@ -742,12 +742,12 @@
       QTY: 4,          // Kolom E: Kuantitas Barang (QTY)
       ROUTE_LC: 5,     // Kolom F: Header asli "ROUTE" -> Berfungsi sebagai Nomor LC (Loading Card)
       CUBE_CBM: 6,     // Kolom G: Header asli "CUBE"  -> Volume CBM desimal
-      STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" (fallback format lama)
+      STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" -> Sumber utama data Pallet (ST00, BR00, LD00, DS00)
       LOADED_L: 11,    // Kolom L: Data Loading / Jam Load / Status Muat
       LOADED_M: 12,    // Kolom M: Data Loading / Checker / Status Muat
-      LINE_O: 14,      // Kolom O: LINE OUTBOUND (Nomor Line Staging, misal: 42, 33-35)
-      LINE_P: 15,      // Kolom P: LPN (Nomor Pallet Staging, misal: ST00193301, ST00194309)
-      LPN_P: 15,       // Kolom P: LPN (Nomor Pallet Staging)
+      LINE_O: 14,      // Kolom O: LINE OUTBOUND -> Sumber utama Nomor Line Staging (misal: 42, 33-35)
+      LINE_P: 15,      // Kolom P: Header asli "LINE" / LPN (fallback cadangan jika Kolom O kosong)
+      LPN_P: 15,       // Kolom P: LPN / Pallet
       PINTU: 16,       // Kolom Q: Header asli "PINTU" -> Nomor pintu outbound ("P01", "P08", "P12", "P15", "8", dst.)
       TYPE_ARMADA: 17, // Kolom R: Header asli "TYPE ARMADA" -> Jenis armada ("CDD", "Wingbox", dll)
       PIC: 18,         // Kolom S: Header asli "PIC" -> Nama Petugas / Checker yang bertugas
@@ -961,11 +961,11 @@
             rowArr[SHEET_COLUMNS.QTY] = item.qty;
             rowArr[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
             rowArr[SHEET_COLUMNS.CUBE_CBM] = item.cbm;
-            rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${item.st}-OK`;
+            rowArr[SHEET_COLUMNS.STATUS_2] = item.st;
             rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
-            rowArr[SHEET_COLUMNS.LINE_O] = '33-35';   // Kolom O: Alokasi Line Pintu (33-35)
-            rowArr[SHEET_COLUMNS.LINE_P] = item.line; // Kolom P: Data Kolom Line Spesifik (33, 34)
+            rowArr[SHEET_COLUMNS.LINE_O] = item.line; // Kolom O: LINE OUTBOUND (Nomor Line Staging)
+            rowArr[SHEET_COLUMNS.LINE_P] = item.line; // Kolom P: Line Staging Spesifik (33, 34)
             rowArr[SHEET_COLUMNS.LINE] = item.line;   // Fallback Line
             rowArr[SHEET_COLUMNS.PINTU] = 'P08';    // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
@@ -1017,10 +1017,10 @@
             rowArr[SHEET_COLUMNS.QTY] = item.qty;
             rowArr[SHEET_COLUMNS.ROUTE_LC] = '260906L058';
             rowArr[SHEET_COLUMNS.CUBE_CBM] = item.cbm;
-            rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${screenshotSt}-OK`;
+            rowArr[SHEET_COLUMNS.STATUS_2] = screenshotSt;
             rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
-            rowArr[SHEET_COLUMNS.LINE_O] = '36-38';   // Kolom O: Alokasi Line Pintu (36-38)
+            rowArr[SHEET_COLUMNS.LINE_O] = item.line; // Kolom O: LINE OUTBOUND (Nomor Line Staging)
             rowArr[SHEET_COLUMNS.LINE_P] = item.line; // Kolom P: Data Kolom Line Spesifik (36, 37, 38)
             rowArr[SHEET_COLUMNS.LINE] = item.line;   // Fallback
             rowArr[SHEET_COLUMNS.PINTU] = 'P09';    // Kolom Q: Nomor Pintu Outbound
@@ -1037,16 +1037,23 @@
         const startIndex = (doorNum === 9) ? 2 : 1;
 
         for (let i = startIndex; i <= uniqueStCount; i++) {
-          // Selang-seling antara kode ST000 dan BR000 agar setiap Line memiliki contoh data keduanya
-          const isBr = (i % 2 === 0);
-          const st0Code = isBr
-            ? `BR0001${String(2500 + index * 40 + i).padStart(4, '0')}`
-            : `ST0019${String(1700 + index * 35 + i).padStart(4, '0')}`;
+          // Variasikan antara kode ST00, BR00, DS00, dan LD00
+          const codeType = i % 4;
+          let st0Code = '';
+          if (codeType === 0) {
+            st0Code = `BR0001${String(2500 + index * 40 + i).padStart(4, '0')}`;
+          } else if (codeType === 1) {
+            st0Code = `ST0019${String(1700 + index * 35 + i).padStart(4, '0')}`;
+          } else if (codeType === 2) {
+            st0Code = `DS0066${String(3600 + index * 20 + i).padStart(4, '0')}`;
+          } else {
+            st0Code = `LD0012${String(4500 + index * 25 + i).padStart(4, '0')}`;
+          }
           
           // Alokasikan ke salah satu line pintu ini (mendukung Line 33 sampai Line 62)
           const targetLineForThisSt = doorLines[(i - 1) % doorLines.length];
 
-          // Beberapa ST/BR nomor memiliki 2 baris sheet untuk simulasi pivot
+          // Beberapa pallet memiliki 2 baris sheet untuk simulasi pivot
           const rowsForThisSt = (i % 3 === 0) ? 2 : 1;
           const targetTotalCbm = (0.5 + ((i * 13) % 210) / 100);
           const isThisLoaded = (i % 2 === 0);
@@ -1062,11 +1069,11 @@
             rowArr[SHEET_COLUMNS.QTY] = itemQty;
             rowArr[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
             rowArr[SHEET_COLUMNS.CUBE_CBM] = parseFloat(portion.toFixed(2));
-            rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${st0Code}-OK`;
+            rowArr[SHEET_COLUMNS.STATUS_2] = st0Code; // Kolom K: Data Pallet (ST00/BR00/DS00/LD00)
             rowArr[SHEET_COLUMNS.LOADED_L] = isThisLoaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = isThisLoaded ? `10:${String((i * 4) % 55).padStart(2, '0')}` : '';
-            rowArr[SHEET_COLUMNS.LINE_O] = lineRangeStr; // Kolom O: Alokasi Line Staging Pintu
-            rowArr[SHEET_COLUMNS.LINE_P] = targetLineForThisSt; // Kolom P: Line Staging Spesifik (33-62)
+            rowArr[SHEET_COLUMNS.LINE_O] = targetLineForThisSt; // Kolom O: LINE OUTBOUND (Nomor Line)
+            rowArr[SHEET_COLUMNS.LINE_P] = targetLineForThisSt; // Kolom P
             rowArr[SHEET_COLUMNS.LINE] = targetLineForThisSt;
             rowArr[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
@@ -1199,19 +1206,6 @@
         return groupedDoors;
       }
 
-      // Sesuai instruksi pengguna:
-      // "jika line 42 dikolom O maka di dashboard ikut ambil kolom O"
-      // "jika ST00 dikolom P maka isinya mengikuti kolom P bukan data dari kolom K tolong disesuaikan lagi"
-      // Deteksi apakah dataset memiliki barcode ST/BR di Kolom P (LPN):
-      let isLpnInColP = false;
-      for (const r of rows) {
-        const valP = String(getCellRawValue(r, SHEET_COLUMNS.LINE_P) || '').trim();
-        if (/(?:ST|BR)0?\d+/i.test(valP)) {
-          isLpnInColP = true;
-          break;
-        }
-      }
-
       // Loop seluruh baris mulai dari indeks 0 (atau baris 2 sheet jika baris 1 adalah header)
       rows.forEach((row, rowIndex) => {
         // Aturan 2: Cek apakah kolom Q terisi. Jika kosong/null/blank, skip baris ini sepenuhnya.
@@ -1325,77 +1319,57 @@
           }
         }
 
-        // Ekstrak Kolom O (LINE OUTBOUND) dan Kolom P (LPN):
+        // =====================================================================
+        // SUMBER DATA:
+        // 1. Line: TETAP DARI KOLOM O (LINE OUTBOUND).
+        // 2. Data Pallet (ST00 / BR00 / LD00 / DS00): AMBIL DARI KOLOM K (STATUS 2).
+        // =====================================================================
         const lineCellO = getCellRawValue(row, SHEET_COLUMNS.LINE_O);
-        const lineCellP = getCellRawValue(row, SHEET_COLUMNS.LINE_P);
+        const parsedLinesO = parseLineNumbers(lineCellO);
 
         let targetLineForRow = null;
         let lineRawForRow = '';
-        let st0Match = null;
 
-        if (isLpnInColP) {
-          // ===================================================================
-          // MODE UTAMA (Sesuai Struktur Sheet Pengguna):
-          // - Kolom O (LINE OUTBOUND) berisi nomor Line (misal: 42, Line 42)
-          // - Kolom P (LPN) berisi nomor ST/BR Pallet (misal: ST00193301, ST00194309, ST00194314)
-          // - Data ST/LPN mengikuti Kolom P, BUKAN data dari Kolom K!
-          // ===================================================================
-          const parsedLinesO = parseLineNumbers(lineCellO);
-          if (parsedLinesO.length > 0) {
-            targetLineForRow = parsedLinesO[0];
-            lineRawForRow = String(lineCellO || '').trim();
-            parsedLinesO.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
-          } else {
-            const parsedLinesP = parseLineNumbers(lineCellP);
-            if (parsedLinesP.length > 0) {
-              targetLineForRow = parsedLinesP[0];
-              lineRawForRow = String(lineCellP || '').trim();
-              parsedLinesP.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
-            } else if (groupedDoors[doorNum].linesSet.size > 0) {
-              targetLineForRow = Array.from(groupedDoors[doorNum].linesSet)[0];
-            }
-          }
-
-          // Nomor ST/Pallet diambil langsung dari Kolom P (LPN):
-          const pRaw = String(lineCellP || '').trim();
-          st0Match = pRaw.match(/(?:ST|BR)0?\d+/i);
-          // CATATAN: Jangan ambil dari Kolom K! Jika di Kolom P tidak ada ST/BR,
-          // berarti barang baris ini belum memiliki LPN staging aktif.
-        } else {
-          // ===================================================================
-          // MODE FALLBACK / FORMAT LAMA:
-          // Kolom P / O = LINE, Kolom K (STATUS 2) = ST
-          // ===================================================================
-          const parsedLinesP = parseLineNumbers(lineCellP);
-          const parsedLinesO = parseLineNumbers(lineCellO);
-          parsedLinesP.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+        if (parsedLinesO.length > 0) {
+          targetLineForRow = parsedLinesO[0];
+          lineRawForRow = String(lineCellO || '').trim();
           parsedLinesO.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
-
-          if (parsedLinesO.length > 0) {
-            targetLineForRow = parsedLinesO[0];
-            lineRawForRow = String(lineCellO || '').trim();
-          } else if (parsedLinesP.length > 0) {
+        } else {
+          // Fallback jika Kolom O baris ini belum terisi, gunakan nomor line yang telah terdeteksi pada pintu ini
+          const lineCellP = getCellRawValue(row, SHEET_COLUMNS.LINE_P);
+          const parsedLinesP = parseLineNumbers(lineCellP);
+          if (parsedLinesP.length > 0) {
             targetLineForRow = parsedLinesP[0];
             lineRawForRow = String(lineCellP || '').trim();
+            parsedLinesP.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+          } else if (groupedDoors[doorNum].linesSet.size > 0) {
+            targetLineForRow = Array.from(groupedDoors[doorNum].linesSet)[0];
           }
+        }
 
-          const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
-          st0Match = kRaw.match(/(?:ST|BR)0?\d+/i);
-          if (!st0Match) {
-            const altCols = [11, 12, 13, 9];
-            for (const cIdx of altCols) {
-              const val = String(getCellRawValue(row, cIdx) || '').trim();
-              const m = val.match(/(?:ST|BR)0?\d+/i);
-              if (m) {
-                st0Match = m;
-                break;
-              }
+        // Ekstrak data ST00, BR00, LD00, DS00 dari Kolom K (STATUS 2)
+        const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
+        let st0Match = kRaw.match(/(?:ST|BR|LD|DS)\s*0?\d+/i);
+
+        // Fallback jika Kolom K belum terisi, cek Kolom P (LPN) atau kolom status alternatif sebagai toleransi
+        if (!st0Match) {
+          const pRaw = String(getCellRawValue(row, SHEET_COLUMNS.LINE_P) || '').trim();
+          st0Match = pRaw.match(/(?:ST|BR|LD|DS)\s*0?\d+/i);
+        }
+        if (!st0Match) {
+          const altCols = [11, 12, 13, 9];
+          for (const cIdx of altCols) {
+            const val = String(getCellRawValue(row, cIdx) || '').trim();
+            const m = val.match(/(?:ST|BR|LD|DS)\s*0?\d+/i);
+            if (m) {
+              st0Match = m;
+              break;
             }
           }
         }
 
         if (!st0Match) {
-          // Keterangan yang belum ada nomor ST/BR (misal belum selesai packing/staging):
+          // Keterangan yang belum ada nomor ST/BR/LD/DS (misal belum selesai packing/staging):
           // Akumulasikan nilai CBM (Kolom G), QTY (Kolom E), dan data article untuk pintu ini
           groupedDoors[doorNum].unassignedCbm += cbmVal;
           groupedDoors[doorNum].unassignedQty += qtyVal;
@@ -1422,7 +1396,7 @@
           }
           return; // Skip dari assign pallet slot
         }
-        const st0Token = st0Match[0].toUpperCase(); // Ambil token ST/BR unik (misal ST00192825, ST00193301, BR00019286)
+        const st0Token = st0Match[0].replace(/\s+/g, '').toUpperCase(); // Ambil token ST/BR/LD/DS unik (misal ST00192520, BR00080423, DS00663610, LD00123456)
 
         // PIVOT & AGREGASI: Cukup 1 perwakilan per nomor ST per pintu, CBM dari kolom G dijumlahkan
         const doorMap = doorStagingMaps[doorNum];
@@ -1763,13 +1737,35 @@
       const rawSt = isFilled ? String(palletItem.st0 || '').trim() : '';
       const upperSt = rawSt.toUpperCase();
       const isBr = isFilled && upperSt.startsWith('BR');
+      const isDs = isFilled && upperSt.startsWith('DS');
+      const isLd = isFilled && upperSt.startsWith('LD');
+
+      let slotThemeClass = 'slot-filled bg-emerald-100 border-emerald-500 text-emerald-950 font-bold shadow-xs cursor-pointer';
+      let slotIndexBadgeClass = 'text-emerald-700 font-bold';
+      let multiBadgeClass = 'text-emerald-800/90 bg-emerald-200/80';
+      let cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-emerald-900 bg-emerald-200/90 border border-emerald-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
+
+      if (isBr) {
+        slotThemeClass = 'slot-filled slot-br bg-sky-100 border-sky-500 text-sky-950 font-bold shadow-xs cursor-pointer';
+        slotIndexBadgeClass = 'text-sky-700 font-bold';
+        multiBadgeClass = 'text-sky-900 bg-sky-200/90';
+        cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-sky-900 bg-sky-200/90 border border-sky-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
+      } else if (isDs) {
+        slotThemeClass = 'slot-filled slot-ds bg-amber-100 border-amber-500 text-amber-950 font-bold shadow-xs cursor-pointer';
+        slotIndexBadgeClass = 'text-amber-700 font-bold';
+        multiBadgeClass = 'text-amber-900 bg-amber-200/90';
+        cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-amber-900 bg-amber-200/90 border border-amber-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
+      } else if (isLd) {
+        slotThemeClass = 'slot-filled slot-ld bg-purple-100 border-purple-500 text-purple-950 font-bold shadow-xs cursor-pointer';
+        slotIndexBadgeClass = 'text-purple-700 font-bold';
+        multiBadgeClass = 'text-purple-900 bg-purple-200/90';
+        cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-purple-900 bg-purple-200/90 border border-purple-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
+      }
 
       const slotBox = document.createElement('div');
       slotBox.className = `pallet-slot rounded border flex flex-col justify-between items-center py-1 px-0.5 text-center relative select-none transition-all ${
         isFilled
-          ? isBr
-            ? 'slot-filled slot-br bg-sky-100 border-sky-500 text-sky-950 font-bold shadow-xs cursor-pointer'
-            : 'slot-filled bg-emerald-100 border-emerald-500 text-emerald-950 font-bold shadow-xs cursor-pointer'
+          ? slotThemeClass
           : 'bg-slate-50 border-dashed border-slate-300 text-slate-400 cursor-default'
       }`;
 
@@ -1779,18 +1775,14 @@
 
       const slotIndexBadge = document.createElement('span');
       slotIndexBadge.className = `text-[8px] font-mono leading-none ${
-        isFilled 
-          ? (isBr ? 'text-sky-700 font-bold' : 'text-emerald-700 font-bold') 
-          : 'text-slate-400 font-medium'
+        isFilled ? slotIndexBadgeClass : 'text-slate-400 font-medium'
       }`;
       slotIndexBadge.textContent = slotNum < 10 ? `0${slotNum}` : `${slotNum}`;
       topBar.appendChild(slotIndexBadge);
 
       if (isFilled && palletItem.rowCount > 1) {
         const multiBadge = document.createElement('span');
-        multiBadge.className = `text-[7.5px] font-mono font-bold px-1 py-0.2 rounded-xs leading-none ${
-          isBr ? 'text-sky-900 bg-sky-200/90' : 'text-emerald-800/90 bg-emerald-200/80'
-        }`;
+        multiBadge.className = `text-[7.5px] font-mono font-bold px-1 py-0.2 rounded-xs leading-none ${multiBadgeClass}`;
         multiBadge.textContent = `${palletItem.rowCount}x`;
         multiBadge.title = `${palletItem.rowCount} baris sheet dipivot menjadi 1 perwakilan (klik untuk detail)`;
         topBar.appendChild(multiBadge);
@@ -1812,19 +1804,18 @@
           }
         });
 
-        // Nomor ST0/BR0 ditampilkan utuh tanpa terpotong titik (...)
-        // Format pemisahan rapi jika panjang karakter > 5/6
+        // Nomor ST0/BR0/LD0/DS0 ditampilkan utuh tanpa terpotong titik (...)
         const stContainer = document.createElement('div');
         stContainer.className = 'flex flex-col items-center justify-center font-mono font-black select-all w-full my-auto leading-[1.15] px-0.5';
         
         let part1 = '';
         let part2 = '';
-        if (upperSt.startsWith('BR000') && rawSt.length > 5) {
+        if ((upperSt.startsWith('BR000') || upperSt.startsWith('ST000') || upperSt.startsWith('LD000') || upperSt.startsWith('DS000')) && rawSt.length > 5) {
           part1 = rawSt.substring(0, 5);
           part2 = rawSt.substring(5);
-        } else if (upperSt.startsWith('ST000') && rawSt.length > 5) {
-          part1 = rawSt.substring(0, 5);
-          part2 = rawSt.substring(5);
+        } else if ((upperSt.startsWith('BR00') || upperSt.startsWith('ST00') || upperSt.startsWith('LD00') || upperSt.startsWith('DS00')) && rawSt.length > 6) {
+          part1 = rawSt.substring(0, 6);
+          part2 = rawSt.substring(6);
         } else if (rawSt.length > 6) {
           part1 = rawSt.substring(0, 6);
           part2 = rawSt.substring(6);
@@ -1833,23 +1824,34 @@
           part2 = '';
         }
 
+        let textColor1 = 'text-emerald-950';
+        let textColor2 = 'text-emerald-900';
+        if (isBr) {
+          textColor1 = 'text-sky-950 font-black';
+          textColor2 = 'text-sky-900 font-black';
+        } else if (isDs) {
+          textColor1 = 'text-amber-950 font-black';
+          textColor2 = 'text-amber-900 font-black';
+        } else if (isLd) {
+          textColor1 = 'text-purple-950 font-black';
+          textColor2 = 'text-purple-900 font-black';
+        }
+
         if (part2) {
           stContainer.innerHTML = `
-            <span class="text-[8.5px] sm:text-[9px] ${isBr ? 'text-sky-950 font-black' : 'text-emerald-950'} tracking-tight whitespace-nowrap leading-none">${part1}</span>
-            <span class="text-[9px] sm:text-[9.5px] ${isBr ? 'text-sky-900 font-black' : 'text-emerald-900'} tracking-wider font-black whitespace-nowrap leading-none mt-0.5">${part2}</span>
+            <span class="text-[8.5px] sm:text-[9px] ${textColor1} tracking-tight whitespace-nowrap leading-none">${part1}</span>
+            <span class="text-[9px] sm:text-[9.5px] ${textColor2} tracking-wider font-black whitespace-nowrap leading-none mt-0.5">${part2}</span>
           `;
         } else {
           stContainer.innerHTML = `
-            <span class="text-[9px] sm:text-[9.5px] ${isBr ? 'text-sky-950 font-black' : 'text-emerald-950'} tracking-tight whitespace-nowrap leading-none">${part1}</span>
+            <span class="text-[9px] sm:text-[9.5px] ${textColor1} tracking-tight whitespace-nowrap leading-none">${part1}</span>
           `;
         }
         slotBox.appendChild(stContainer);
 
-        // Keterangan Jumlah CBM di bawah nomor ST/BR
+        // Keterangan Jumlah CBM di bawah nomor ST/BR/LD/DS
         const cbmBadge = document.createElement('div');
-        cbmBadge.className = isBr
-          ? 'font-mono font-bold text-[7.5px] sm:text-[8px] text-sky-900 bg-sky-200/90 border border-sky-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full'
-          : 'font-mono font-bold text-[7.5px] sm:text-[8px] text-emerald-900 bg-emerald-200/90 border border-emerald-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
+        cbmBadge.className = cbmBadgeClass;
         cbmBadge.textContent = formatCbm(palletItem.cbm);
         slotBox.appendChild(cbmBadge);
 
@@ -2649,20 +2651,35 @@
       const searchInput = document.getElementById('detail-search-input');
 
       // Populate Header & Info Strip
-      const isBr = palletItem.st0 && palletItem.st0.toUpperCase().startsWith('BR');
+      const upperCode = (palletItem.st0 || '').toUpperCase();
+      const isBr = upperCode.startsWith('BR');
+      const isDs = upperCode.startsWith('DS');
+      const isLd = upperCode.startsWith('LD');
+
       const typeBadge = document.getElementById('detail-code-type-badge');
       if (typeBadge) {
-        typeBadge.textContent = isBr ? 'BR000' : 'ST000';
-        typeBadge.className = isBr
-          ? 'w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 font-bold font-mono text-[10px]'
-          : 'w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold font-mono text-[10px]';
+        if (isBr) {
+          typeBadge.textContent = 'BR00';
+          typeBadge.className = 'w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 font-bold font-mono text-[10px]';
+        } else if (isDs) {
+          typeBadge.textContent = 'DS00';
+          typeBadge.className = 'w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold font-mono text-[10px]';
+        } else if (isLd) {
+          typeBadge.textContent = 'LD00';
+          typeBadge.className = 'w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 font-bold font-mono text-[10px]';
+        } else {
+          typeBadge.textContent = 'ST00';
+          typeBadge.className = 'w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold font-mono text-[10px]';
+        }
       }
 
       st0Title.textContent = palletItem.st0 || '-';
       rowCountBadge.textContent = `${palletItem.rowCount || 1} baris sheet dipivot`;
-      rowCountBadge.className = isBr
-        ? 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 font-mono'
-        : 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono';
+      let badgeTheme = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+      if (isBr) badgeTheme = 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+      else if (isDs) badgeTheme = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+      else if (isLd) badgeTheme = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+      rowCountBadge.className = `px-2 py-0.5 rounded-full text-[11px] font-bold ${badgeTheme} border font-mono`;
       const slotText = typeof slotNum === 'number' ? `Slot #${slotNum < 10 ? '0' + slotNum : slotNum}` : slotNum;
       locationSub.textContent = `${formatDoorLabel(doorNum)} • ${stgName} • ${slotText}`;
       totalCbmEl.textContent = formatCbm(palletItem.cbm);
