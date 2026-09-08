@@ -755,13 +755,18 @@
     };
 
     /**
-     * Parsing nomor Line dari Kolom P & Kolom O sheet:
-     * Mendukung format seperti "33", "Line 33", "L33", "33-35", "33 - 35", "33, 34", "Line 33-34"
+     * Parsing nomor Line dari Kolom O sheet (Line Staging 33 s/d 62):
+     * Aturan ketat:
+     * - Jika kosong, "-", "0", null, undefined -> kembalikan [] (KOSONG)
+     * - Hanya nomor line staging yang valid di dermaga gudang (Line 33 s/d Line 62) yang diakui.
+     * - Jika Kolom O kosong, pallet (ST00/BR00/DS00/LD00) tidak boleh memiliki line dan tidak boleh muncul di slot line dashboard!
      */
     function parseLineNumbers(raw) {
       if (raw === undefined || raw === null) return [];
       const str = String(raw).trim();
-      if (!str) return [];
+      if (!str || str === '-' || str === '--' || str === '0' || str.toLowerCase() === 'null' || str.toLowerCase() === 'n/a' || str === '#N/A') {
+        return [];
+      }
 
       // Jika teks adalah kode status/LPN barcode (seperti ST00193301, BR00080423, DS..., LD...), jangan anggap sebagai nomor line
       if (/^(?:ST|BR|DS|LD|PLT|SO|DO|PO)\d+/i.test(str)) {
@@ -775,20 +780,87 @@
         const end = parseInt(rangeMatch[2], 10);
         if (!isNaN(start) && !isNaN(end) && end >= start && (end - start) <= 15) {
           const list = [];
-          for (let l = start; l <= end; l++) list.push(l);
+          for (let l = start; l <= end; l++) {
+            if (l >= 33 && l <= 62) list.push(l);
+          }
           return list;
         }
       }
 
       // Bersihkan akhiran desimal jika ada (misal "33.0")
       const cleanStr = str.replace(/[.,]0+\b/g, '');
-      // Ekstrak seluruh angka individual yang valid (misal "33, 34" atau "Line 33")
+      // Ekstrak seluruh nomor line individual: HANYA Line 33 sampai Line 62 yang sah!
       const matches = cleanStr.match(/\d+/g);
       if (matches) {
-        const nums = matches.map(m => parseInt(m, 10)).filter(n => !isNaN(n) && n > 0 && n <= 120);
+        const nums = matches.map(m => parseInt(m, 10)).filter(n => !isNaN(n) && n >= 33 && n <= 62);
         return Array.from(new Set(nums));
       }
       return [];
+    }
+
+    /**
+     * Deteksi dinamis kolom Google Sheets jika header/kolom bergeser di GViz API
+     */
+    function detectSheetColumns(cols) {
+      if (!cols || !Array.isArray(cols)) return;
+      cols.forEach((col, idx) => {
+        if (!col) return;
+        const colId = String(col.id || '').toUpperCase().trim();
+        const label = String(col.label || '').toUpperCase().trim();
+
+        // Kolom O: LINE OUTBOUND (Nomor Line Staging)
+        if (colId === 'O' || label.includes('LINE OUTBOUND') || (label.includes('LINE') && (idx === 14 || idx === 15))) {
+          SHEET_COLUMNS.LINE_O = idx;
+        }
+        // Kolom K: STATUS 2 (Sumber utama Pallet ST00, BR00, LD00, DS00)
+        if (colId === 'K' || label.includes('STATUS 2') || label === 'STATUS2') {
+          SHEET_COLUMNS.STATUS_2 = idx;
+        }
+        // Kolom Q: PINTU
+        if (colId === 'Q' || label.includes('PINTU') || label.includes('DOOR')) {
+          SHEET_COLUMNS.PINTU = idx;
+        }
+        // Kolom C: ARTICLE
+        if (colId === 'C' || label.includes('ARTICLE')) {
+          SHEET_COLUMNS.ARTICLE = idx;
+        }
+        // Kolom D: NAMA BARANG
+        if (colId === 'D' || label.includes('NAMA BARANG') || label.includes('DESC')) {
+          SHEET_COLUMNS.NAMA_BARANG = idx;
+        }
+        // Kolom E: QTY
+        if (colId === 'E' || label === 'QTY' || label.includes('QUANTITY')) {
+          SHEET_COLUMNS.QTY = idx;
+        }
+        // Kolom F: ROUTE / LC
+        if (colId === 'F' || label.includes('ROUTE') || label.includes('LC')) {
+          SHEET_COLUMNS.ROUTE_LC = idx;
+        }
+        // Kolom G: CUBE / CBM
+        if (colId === 'G' || label.includes('CUBE') || label.includes('CBM')) {
+          SHEET_COLUMNS.CUBE_CBM = idx;
+        }
+        // Kolom L: LOADED L
+        if (colId === 'L' || (label.includes('LOADED') && idx === 11)) {
+          SHEET_COLUMNS.LOADED_L = idx;
+        }
+        // Kolom M: LOADED M / CHECKER
+        if (colId === 'M' || (label.includes('LOADED') && idx === 12)) {
+          SHEET_COLUMNS.LOADED_M = idx;
+        }
+        // Kolom R: TYPE ARMADA
+        if (colId === 'R' || label.includes('ARMADA')) {
+          SHEET_COLUMNS.TYPE_ARMADA = idx;
+        }
+        // Kolom S: PIC
+        if (colId === 'S' || label.includes('PIC') || label.includes('CHECKER')) {
+          SHEET_COLUMNS.PIC = idx;
+        }
+        // Kolom T: CBM ARMADA
+        if (colId === 'T' || label.includes('CBM ARMADA')) {
+          SHEET_COLUMNS.CBM_ARMADA = idx;
+        }
+      });
     }
 
     /**
@@ -929,7 +1001,7 @@
     // Menghasilkan data realistis yang cocok dengan format sheet yang diminta
     // =========================================================================
     function generateRealisticDemoData() {
-      // 6 Armada Standar sesuai instruksi:
+      // 6 Armada Standar:
       // 1. CDD LONG: 15 CBM, 2. CONT-20: 24 CBM, 3. CONT-40: 48 CBM, 4. FUSO: 27 CBM, 5. WINGBOX: 37 CBM, 6. CDE LONG: 11 CBM
       const armadas = ['CDD LONG', 'WINGBOX', 'FUSO', 'CONT-20', 'CONT-40', 'CDE LONG', 'CDD LONG', 'WINGBOX'];
       const picList = ['Bambang H.', 'Dedi S.', 'Ahmad Fauzi', 'Agus Wibowo', 'Hendra P.', 'Rian Pratama', 'Eko Saputra', 'Fajar N.'];
@@ -949,217 +1021,350 @@
       ];
       const demoRows = [];
 
-      TARGET_DOORS.forEach((doorNum, index) => {
-        const armada = armadas[index % armadas.length];
-        const pic = picList[index % picList.length];
-        const armadaCap = getArmadaCapacity(armada);
-        const lcNumber = (doorNum === 8) ? '260906L053' : `260905L${String(60 + index * 4).padStart(3, '0')}`;
-        const doorLines = DEFAULT_DOOR_LINES[doorNum] || [33 + index * 3, 33 + index * 3 + 1, 33 + index * 3 + 2];
-        const baseLine = doorLines[0];
-        const lineRangeStr = doorLines.length > 1 ? `${doorLines[0]}-${doorLines[doorLines.length - 1]}` : `${doorLines[0]}`;
-        
-        // Pintu 8: Sesuai contoh spesifik dari user:
-        // Armada: CDD LONG (Kolom T: 15), LC: 260906L053, Total Stage: 2.71 CBM, Belum ST: 7.85 CBM (Sisa: 10.56 CBM)
-        // Memasukkan contoh ST000 dan BR000 langsung ke Line Staging Pintu 08 (Line 33, 34, 35)
-        if (doorNum === 8) {
-          const p8StagingList = [
-            { st: 'ST00192825', cbm: 1.50, qty: 110, loaded: true, time: '09:40', line: 33 },
-            { st: 'BR00019286', cbm: 1.21, qty: 85, loaded: false, time: '', line: 34 }
-          ]; // Total staging = 2.71 CBM (Loaded = 1.50 CBM)
+      // =======================================================================
+      // DATA SIMULASI SESUAI ATURAN MUTLAK PENGGUNA:
+      // "jika contoh ST00 ada didata dikolom K dan Line ada dikolom O maka didashboard ada,
+      //  jika ST00/BR00/DS00/LD00 ada didata kolom K dan Line tidak ada isinya dikolom O maka didashboard kosong"
+      // =======================================================================
 
-          p8StagingList.forEach((item, sIdx) => {
-            const rowArr = [];
-            const cat = catalog[sIdx % catalog.length];
-            rowArr[SHEET_COLUMNS.ARTICLE] = cat.article;
-            rowArr[SHEET_COLUMNS.NAMA_BARANG] = cat.name;
-            rowArr[SHEET_COLUMNS.QTY] = item.qty;
-            rowArr[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
-            rowArr[SHEET_COLUMNS.CUBE_CBM] = item.cbm;
-            rowArr[SHEET_COLUMNS.STATUS_2] = item.st;
-            rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
-            rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
-            rowArr[SHEET_COLUMNS.LINE_O] = item.line; // Kolom O: LINE OUTBOUND (Nomor Line Staging)
-            rowArr[SHEET_COLUMNS.LINE_P] = item.line; // Kolom P: Line Staging Spesifik (33, 34)
-            rowArr[SHEET_COLUMNS.LINE] = item.line;   // Fallback Line
-            rowArr[SHEET_COLUMNS.PINTU] = 'P08';    // Kolom Q: Nomor Pintu Outbound
-            rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
-            rowArr[SHEET_COLUMNS.PIC] = pic;
-            rowArr[SHEET_COLUMNS.CBM_ARMADA] = 15; // Kolom T: 15
-            demoRows.push(rowArr);
-          });
-
-          // Baris Belum ST untuk Pintu 08: total 7.85 CBM (sesuai contoh user: total stage 2.71 dan belum st 7.85)
-          const p8Unassigned = [
-            { article: '10781290', name: 'PASTA GIGI HERBAL PROTECTION 190G', qty: 240, cbm: 4.50 },
-            { article: '10892341', name: 'TISSUE FACIAL SOFT PACK 250S', qty: 180, cbm: 3.35 }
-          ]; // 4.50 + 3.35 = 7.85 CBM
-          p8Unassigned.forEach(un => {
-            const unRow = [];
-            unRow[SHEET_COLUMNS.ARTICLE] = un.article;
-            unRow[SHEET_COLUMNS.NAMA_BARANG] = un.name;
-            unRow[SHEET_COLUMNS.QTY] = un.qty;
-            unRow[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
-            unRow[SHEET_COLUMNS.CUBE_CBM] = un.cbm;
-            unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kosong / belum ada ST
-            unRow[SHEET_COLUMNS.LOADED_L] = '';
-            unRow[SHEET_COLUMNS.LOADED_M] = '';
-            unRow[SHEET_COLUMNS.LINE_O] = '33-35'; // Kolom O: Line Staging Pintu
-            unRow[SHEET_COLUMNS.LINE_P] = '33-35'; // Kolom P: Line Staging
-            unRow[SHEET_COLUMNS.LINE] = '33-35';
-            unRow[SHEET_COLUMNS.PINTU] = 'P08';   // Kolom Q: Nomor Pintu Outbound
-            unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
-            unRow[SHEET_COLUMNS.PIC] = pic;
-            unRow[SHEET_COLUMNS.CBM_ARMADA] = 15; // Kolom T: 15
-            demoRows.push(unRow);
-          });
-
-          return; // Selesai untuk pintu 8
-        }
-
-        // Pintu 9: Sertakan contoh ST00193048 dengan WINGBOX (37 CBM di Kolom T)
-        if (doorNum === 9) {
-          const screenshotSt = 'ST00193048';
-          const p9Data = [
-            { cbm: 1.00, qty: 150, cat: catalog[5], loaded: true, time: '10:15', line: 36 },
-            { cbm: 0.86, qty: 90, cat: catalog[4], loaded: true, time: '10:20', line: 37 },
-            { cbm: 0.60, qty: 60, cat: catalog[3], loaded: false, time: '', line: 38 }
-          ];
-          p9Data.forEach(item => {
-            const rowArr = [];
-            rowArr[SHEET_COLUMNS.ARTICLE] = item.cat.article;
-            rowArr[SHEET_COLUMNS.NAMA_BARANG] = item.cat.name;
-            rowArr[SHEET_COLUMNS.QTY] = item.qty;
-            rowArr[SHEET_COLUMNS.ROUTE_LC] = '260906L058';
-            rowArr[SHEET_COLUMNS.CUBE_CBM] = item.cbm;
-            rowArr[SHEET_COLUMNS.STATUS_2] = screenshotSt;
-            rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
-            rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
-            rowArr[SHEET_COLUMNS.LINE_O] = item.line; // Kolom O: LINE OUTBOUND (Nomor Line Staging)
-            rowArr[SHEET_COLUMNS.LINE_P] = item.line; // Kolom P: Data Kolom Line Spesifik (36, 37, 38)
-            rowArr[SHEET_COLUMNS.LINE] = item.line;   // Fallback
-            rowArr[SHEET_COLUMNS.PINTU] = 'P09';    // Kolom Q: Nomor Pintu Outbound
-            rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
-            rowArr[SHEET_COLUMNS.PIC] = pic;
-            rowArr[SHEET_COLUMNS.CBM_ARMADA] = 37; // Kolom T: 37
-            demoRows.push(rowArr);
-          });
-        }
-
-        // Generate nomor staging lainnya per pintu (beberapa memiliki multiple baris sheet untuk menguji pivot)
-        // Memasukkan contoh ST000 dan BR000 ke line-line staging secara proporsional
-        const uniqueStCount = doorLines.length > 3 ? (doorLines.length * 4) : ([14, 25, 20, 16, 22, 15, 21, 18][index % 8] || 16);
-        const startIndex = (doorNum === 9) ? 2 : 1;
-
-        for (let i = startIndex; i <= uniqueStCount; i++) {
-          // Variasikan antara kode ST00, BR00, DS00, dan LD00
-          const codeType = i % 4;
-          let st0Code = '';
-          if (codeType === 0) {
-            st0Code = `BR0001${String(2500 + index * 40 + i).padStart(4, '0')}`;
-          } else if (codeType === 1) {
-            st0Code = `ST0019${String(1700 + index * 35 + i).padStart(4, '0')}`;
-          } else if (codeType === 2) {
-            st0Code = `DS0066${String(3600 + index * 20 + i).padStart(4, '0')}`;
-          } else {
-            st0Code = `LD0012${String(4500 + index * 25 + i).padStart(4, '0')}`;
-          }
-          
-          // Alokasikan ke salah satu line pintu ini (mendukung Line 33 sampai Line 62)
-          const targetLineForThisSt = doorLines[(i - 1) % doorLines.length];
-
-          // Beberapa pallet memiliki 2 baris sheet untuk simulasi pivot
-          const rowsForThisSt = (i % 3 === 0) ? 2 : 1;
-          const targetTotalCbm = (0.5 + ((i * 13) % 210) / 100);
-          const isThisLoaded = (i % 2 === 0);
-
-          for (let r = 0; r < rowsForThisSt; r++) {
-            const rowArr = [];
-            const portion = (targetTotalCbm / rowsForThisSt);
-            const itemCat = catalog[(i + r * 3) % catalog.length];
-            const itemQty = Math.round(20 + ((i * 7 + r * 15) % 180));
-
-            rowArr[SHEET_COLUMNS.ARTICLE] = itemCat.article;
-            rowArr[SHEET_COLUMNS.NAMA_BARANG] = itemCat.name;
-            rowArr[SHEET_COLUMNS.QTY] = itemQty;
-            rowArr[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
-            rowArr[SHEET_COLUMNS.CUBE_CBM] = parseFloat(portion.toFixed(2));
-            rowArr[SHEET_COLUMNS.STATUS_2] = st0Code; // Kolom K: Data Pallet (ST00/BR00/DS00/LD00)
-            rowArr[SHEET_COLUMNS.LOADED_L] = isThisLoaded ? 'LOADED' : '';
-            rowArr[SHEET_COLUMNS.LOADED_M] = isThisLoaded ? `10:${String((i * 4) % 55).padStart(2, '0')}` : '';
-            rowArr[SHEET_COLUMNS.LINE_O] = targetLineForThisSt; // Kolom O: LINE OUTBOUND (Nomor Line)
-            rowArr[SHEET_COLUMNS.LINE_P] = targetLineForThisSt; // Kolom P
-            rowArr[SHEET_COLUMNS.LINE] = targetLineForThisSt;
-            rowArr[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
-            rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
-            rowArr[SHEET_COLUMNS.PIC] = pic;
-            rowArr[SHEET_COLUMNS.CBM_ARMADA] = armadaCap; // Kolom T: Kapasitas CBM Armada
-            demoRows.push(rowArr);
-          }
-        }
-
-        // Tambahkan baris dengan Kolom K kosong / belum ada ST untuk demonstrasi CBM belum staging
-        if (index % 2 === 1 || doorLines.length > 3) {
-          const unassignedSamples = [
-            { article: '10781290', name: 'PASTA GIGI HERBAL PROTECTION 190G', qty: 65, cbm: 0.95 },
-            { article: '10892341', name: 'TISSUE FACIAL SOFT PACK 250S', qty: 110, cbm: 1.45 }
-          ];
-          unassignedSamples.forEach(un => {
-            const unRow = [];
-            unRow[SHEET_COLUMNS.ARTICLE] = un.article;
-            unRow[SHEET_COLUMNS.NAMA_BARANG] = un.name;
-            unRow[SHEET_COLUMNS.QTY] = un.qty;
-            unRow[SHEET_COLUMNS.ROUTE_LC] = lcNumber;
-            unRow[SHEET_COLUMNS.CUBE_CBM] = un.cbm;
-            unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kolom K kosong / belum ada ST
-            unRow[SHEET_COLUMNS.LOADED_L] = '';
-            unRow[SHEET_COLUMNS.LOADED_M] = '';
-            unRow[SHEET_COLUMNS.LINE_O] = lineRangeStr; // Kolom O: Line Staging Pintu
-            unRow[SHEET_COLUMNS.LINE_P] = lineRangeStr; // Kolom P: Line Staging
-            unRow[SHEET_COLUMNS.LINE] = lineRangeStr;
-            unRow[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
-            unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
-            unRow[SHEET_COLUMNS.PIC] = pic;
-            unRow[SHEET_COLUMNS.CBM_ARMADA] = armadaCap; // Kolom T: Kapasitas CBM Armada
-            demoRows.push(unRow);
-          });
-        }
-      });
-
-      // Tambahkan baris simulasi sesuai pengujian pengguna:
-      // Kasus 1: ST/BR ada di Kolom K tetapi Kolom O kosong -> Di dashboard slot line HARUS KOSONG!
+      // PINTU 08 (Line 33, 34, 35):
+      // - Line 33: Ada di Kolom O (33), ada ST00192825 di Kolom K -> DI DASHBOARD LINE 33 ADA!
+      // - BR00019286 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG (tidak ada nilainya)!
+      // - DS00663570 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG (tidak ada nilainya)!
+      // - LD00146839 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG (tidak ada nilainya)!
       demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: '10239088',
-        [SHEET_COLUMNS.NAMA_BARANG]: 'KOPI BUBUK INSTAN 20X30G',
-        [SHEET_COLUMNS.QTY]: 50,
+        [SHEET_COLUMNS.ARTICLE]: catalog[0].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[0].name,
+        [SHEET_COLUMNS.QTY]: 110,
         [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.15,
-        [SHEET_COLUMNS.STATUS_2]: 'BR00079395', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '',            // KOSONG di Kolom O -> TIDAK BOLEH MUNCUL DI LINE APAPUN!
+        [SHEET_COLUMNS.CUBE_CBM]: 1.50,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00192825', // Ada di Kolom K
+        [SHEET_COLUMNS.LOADED_L]: 'LOADED',
+        [SHEET_COLUMNS.LOADED_M]: '09:40',
+        [SHEET_COLUMNS.LINE_O]: 33,             // ADA di Kolom O (33) -> DI DASHBOARD LINE 33 MUNCUL!
         [SHEET_COLUMNS.PINTU]: 'P08',
         [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
-        [SHEET_COLUMNS.PIC]: 'AHMAD'
+        [SHEET_COLUMNS.PIC]: 'Bambang H.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
       });
 
-      // Kasus 2: Kolom O terisi Line 42 dan Kolom K terisi ST00192520, tetapi Kolom Q kosong -> Otomatis ke Line 42 (Pintu 11)!
+      // Data BR00 di Pintu 08: Line di Kolom O sengaja KOSONG
       demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: '10124509',
-        [SHEET_COLUMNS.NAMA_BARANG]: 'SUSU KENTAL MANIS CAN 370G',
+        [SHEET_COLUMNS.ARTICLE]: catalog[1].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[1].name,
+        [SHEET_COLUMNS.QTY]: 85,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.21,
+        [SHEET_COLUMNS.STATUS_2]: 'BR00019286', // Ada di Kolom K
+        [SHEET_COLUMNS.LOADED_L]: '',
+        [SHEET_COLUMNS.LOADED_M]: '',
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> DI DASHBOARD TIDAK ADA NILAINYA (KOSONG)!
+        [SHEET_COLUMNS.PINTU]: 'P08',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
+        [SHEET_COLUMNS.PIC]: 'Bambang H.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
+      });
+
+      // Data DS00 di Pintu 08: Line di Kolom O sengaja KOSONG
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[2].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[2].name,
+        [SHEET_COLUMNS.QTY]: 90,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.30,
+        [SHEET_COLUMNS.STATUS_2]: 'DS00663570', // Ada di Kolom K
+        [SHEET_COLUMNS.LOADED_L]: '',
+        [SHEET_COLUMNS.LOADED_M]: '',
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> DI DASHBOARD TIDAK ADA NILAINYA (KOSONG)!
+        [SHEET_COLUMNS.PINTU]: 'P08',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
+        [SHEET_COLUMNS.PIC]: 'Bambang H.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
+      });
+
+      // Data LD00 di Pintu 08: Line di Kolom O sengaja KOSONG
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[3].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[3].name,
+        [SHEET_COLUMNS.QTY]: 70,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.05,
+        [SHEET_COLUMNS.STATUS_2]: 'LD00146839', // Ada di Kolom K
+        [SHEET_COLUMNS.LOADED_L]: '',
+        [SHEET_COLUMNS.LOADED_M]: '',
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> DI DASHBOARD TIDAK ADA NILAINYA (KOSONG)!
+        [SHEET_COLUMNS.PINTU]: 'P08',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
+        [SHEET_COLUMNS.PIC]: 'Bambang H.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
+      });
+
+      // Barang Belum ST untuk Pintu 08 (Total Belum ST: 7.85 CBM)
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[9].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[9].name,
+        [SHEET_COLUMNS.QTY]: 240,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
+        [SHEET_COLUMNS.CUBE_CBM]: 4.50,
+        [SHEET_COLUMNS.STATUS_2]: '',
+        [SHEET_COLUMNS.LINE_O]: '',
+        [SHEET_COLUMNS.PINTU]: 'P08',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
+        [SHEET_COLUMNS.PIC]: 'Bambang H.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[10].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[10].name,
+        [SHEET_COLUMNS.QTY]: 180,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
+        [SHEET_COLUMNS.CUBE_CBM]: 3.35,
+        [SHEET_COLUMNS.STATUS_2]: '',
+        [SHEET_COLUMNS.LINE_O]: '',
+        [SHEET_COLUMNS.PINTU]: 'P08',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
+        [SHEET_COLUMNS.PIC]: 'Bambang H.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
+      });
+
+      // PINTU 09 (Line 36, 37, 38):
+      // - Line 36: Ada di Kolom O (36), ada ST00193048 di Kolom K -> DI DASHBOARD LINE 36 ADA!
+      // - BR00019401 & DS00663802 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[5].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[5].name,
+        [SHEET_COLUMNS.QTY]: 150,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L058',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.00,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00193048',
+        [SHEET_COLUMNS.LOADED_L]: 'LOADED',
+        [SHEET_COLUMNS.LOADED_M]: '10:15',
+        [SHEET_COLUMNS.LINE_O]: 36,             // ADA di Kolom O (36) -> DI DASHBOARD ADA!
+        [SHEET_COLUMNS.PINTU]: 'P09',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+        [SHEET_COLUMNS.PIC]: 'Dedi S.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 37
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[4].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[4].name,
+        [SHEET_COLUMNS.QTY]: 90,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L058',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.86,
+        [SHEET_COLUMNS.STATUS_2]: 'BR00019401', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P09',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+        [SHEET_COLUMNS.PIC]: 'Dedi S.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 37
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[3].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[3].name,
+        [SHEET_COLUMNS.QTY]: 60,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L058',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.60,
+        [SHEET_COLUMNS.STATUS_2]: 'DS00663802', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P09',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+        [SHEET_COLUMNS.PIC]: 'Dedi S.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 37
+      });
+
+      // PINTU 10 (Line 39, 40, 41):
+      // - Line 39: Ada di Kolom O (39), ada ST00193150 di Kolom K -> DI DASHBOARD ADA!
+      // - BR00019522 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[6].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[6].name,
+        [SHEET_COLUMNS.QTY]: 120,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L064',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.40,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00193150',
+        [SHEET_COLUMNS.LOADED_L]: 'LOADED',
+        [SHEET_COLUMNS.LOADED_M]: '10:30',
+        [SHEET_COLUMNS.LINE_O]: 39,             // ADA di Kolom O -> DI DASHBOARD ADA!
+        [SHEET_COLUMNS.PINTU]: 'P10',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'FUSO',
+        [SHEET_COLUMNS.PIC]: 'Ahmad Fauzi',
+        [SHEET_COLUMNS.CBM_ARMADA]: 27
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[7].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[7].name,
+        [SHEET_COLUMNS.QTY]: 80,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L064',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.10,
+        [SHEET_COLUMNS.STATUS_2]: 'BR00019522', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P10',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'FUSO',
+        [SHEET_COLUMNS.PIC]: 'Ahmad Fauzi',
+        [SHEET_COLUMNS.CBM_ARMADA]: 27
+      });
+
+      // PINTU 11 (Line 42, 43, 44):
+      // - Line 42: Ada di Kolom O (42) dan Kolom K terisi ST00192520, Kolom Q kosong -> Otomatis ke Line 42 (Pintu 11)!
+      // - BR00079395 & DS00663950 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[3].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[3].name,
         [SHEET_COLUMNS.QTY]: 75,
         [SHEET_COLUMNS.ROUTE_LC]: '260905L072',
         [SHEET_COLUMNS.CUBE_CBM]: 0.95,
         [SHEET_COLUMNS.STATUS_2]: 'ST00192520', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '42',           // Kolom O: Line 42
-        [SHEET_COLUMNS.PINTU]: '',              // Kolom Q kosong -> Otomatis dipetakan ke Line 42
+        [SHEET_COLUMNS.LINE_O]: 42,             // ADA di Kolom O (42) -> DI DASHBOARD MUNCUL DI LINE 42!
+        [SHEET_COLUMNS.PINTU]: '',              // Kolom Q kosong -> Otomatis dipetakan ke Line 42 (Pintu 11)
         [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
-        [SHEET_COLUMNS.PIC]: 'HENDRA'
+        [SHEET_COLUMNS.PIC]: 'Hendra P.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 37
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[4].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[4].name,
+        [SHEET_COLUMNS.QTY]: 50,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L072',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.15,
+        [SHEET_COLUMNS.STATUS_2]: 'BR00079395', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',            // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P11',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+        [SHEET_COLUMNS.PIC]: 'Hendra P.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 37
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[5].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[5].name,
+        [SHEET_COLUMNS.QTY]: 65,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L072',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.85,
+        [SHEET_COLUMNS.STATUS_2]: 'DS00663950', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',            // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P11',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+        [SHEET_COLUMNS.PIC]: 'Hendra P.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 37
       });
 
-      // Tambahkan baris dengan kolom Q kosong dan kolom O kosong (harus di-skip sepenuhnya)
+      // PINTU 12 (Line 45, 46, 47):
+      // - Line 45: Ada di Kolom O (45), ada ST00193290 di Kolom K -> DI DASHBOARD ADA!
+      // - Pallet lainnya: Kolom O KOSONG -> DI DASHBOARD KOSONG!
       demoRows.push({
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L999',
-        [SHEET_COLUMNS.STATUS_2]: 'ST00199999',
-        [SHEET_COLUMNS.LINE_O]: '',
-        [SHEET_COLUMNS.PINTU]: '', // Q kosong dan O kosong -> harus di-skip
+        [SHEET_COLUMNS.ARTICLE]: catalog[0].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[0].name,
+        [SHEET_COLUMNS.QTY]: 95,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L068',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.20,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00193290',
+        [SHEET_COLUMNS.LINE_O]: 45,             // ADA di Kolom O (45) -> DI DASHBOARD ADA!
+        [SHEET_COLUMNS.PINTU]: 'P12',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-20',
+        [SHEET_COLUMNS.PIC]: 'Agus Wibowo',
+        [SHEET_COLUMNS.CBM_ARMADA]: 24
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[1].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[1].name,
+        [SHEET_COLUMNS.QTY]: 70,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L068',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.90,
+        [SHEET_COLUMNS.STATUS_2]: 'BR00019633', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P12',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-20',
+        [SHEET_COLUMNS.PIC]: 'Agus Wibowo',
+        [SHEET_COLUMNS.CBM_ARMADA]: 24
+      });
+
+      // PINTU 13 (Line 48, 49, 50):
+      // - Line 48: Ada di Kolom O (48), ada ST00193410 di Kolom K -> DI DASHBOARD ADA!
+      // - Pallet lainnya: Kolom O KOSONG -> DI DASHBOARD KOSONG!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[6].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[6].name,
+        [SHEET_COLUMNS.QTY]: 88,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L076',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.10,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00193410',
+        [SHEET_COLUMNS.LINE_O]: 48,             // ADA di Kolom O (48) -> DI DASHBOARD ADA!
+        [SHEET_COLUMNS.PINTU]: 'P13',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDE LONG',
+        [SHEET_COLUMNS.PIC]: 'Rian Pratama',
+        [SHEET_COLUMNS.CBM_ARMADA]: 11
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[7].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[7].name,
+        [SHEET_COLUMNS.QTY]: 60,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L076',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.75,
+        [SHEET_COLUMNS.STATUS_2]: 'DS00664012', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P13',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDE LONG',
+        [SHEET_COLUMNS.PIC]: 'Rian Pratama',
+        [SHEET_COLUMNS.CBM_ARMADA]: 11
+      });
+
+      // PINTU 14 (Line 51-56):
+      // - Line 51: Ada di Kolom O (51), ada ST00193550 di Kolom K -> DI DASHBOARD ADA!
+      // - Pallet lainnya: Kolom O KOSONG -> DI DASHBOARD KOSONG!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[8].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[8].name,
+        [SHEET_COLUMNS.QTY]: 130,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L080',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.60,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00193550',
+        [SHEET_COLUMNS.LINE_O]: 51,             // ADA di Kolom O (51) -> DI DASHBOARD ADA!
+        [SHEET_COLUMNS.PINTU]: 'P14',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-40',
+        [SHEET_COLUMNS.PIC]: 'Eko Saputra',
+        [SHEET_COLUMNS.CBM_ARMADA]: 48
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[9].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[9].name,
+        [SHEET_COLUMNS.QTY]: 75,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L080',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.15,
+        [SHEET_COLUMNS.STATUS_2]: 'LD00124890', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P14',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-40',
+        [SHEET_COLUMNS.PIC]: 'Eko Saputra',
+        [SHEET_COLUMNS.CBM_ARMADA]: 48
+      });
+
+      // PINTU 15 (Line 57-62):
+      // - Line 57: Ada di Kolom O (57), ada ST00193680 di Kolom K -> DI DASHBOARD ADA!
+      // - Pallet lainnya: Kolom O KOSONG -> DI DASHBOARD KOSONG!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[10].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[10].name,
+        [SHEET_COLUMNS.QTY]: 105,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L084',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.35,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00193680',
+        [SHEET_COLUMNS.LINE_O]: 57,             // ADA di Kolom O (57) -> DI DASHBOARD ADA!
+        [SHEET_COLUMNS.PINTU]: 'P15',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+        [SHEET_COLUMNS.PIC]: 'Fajar N.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 37
+      });
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[11].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[11].name,
+        [SHEET_COLUMNS.QTY]: 80,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L084',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.05,
+        [SHEET_COLUMNS.STATUS_2]: 'BR00019800', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.PINTU]: 'P15',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+        [SHEET_COLUMNS.PIC]: 'Fajar N.',
+        [SHEET_COLUMNS.CBM_ARMADA]: 37
       });
 
       return demoRows;
@@ -1680,6 +1885,11 @@
 
       if (!parsedJson.table || !Array.isArray(parsedJson.table.rows)) {
         throw new Error('Tabel data kosong atau format kolom tidak ditemukan.');
+      }
+
+      // Deteksi posisi kolom otomatis dari table.cols jika ada
+      if (Array.isArray(parsedJson.table.cols)) {
+        detectSheetColumns(parsedJson.table.cols);
       }
 
       return parsedJson.table.rows;
