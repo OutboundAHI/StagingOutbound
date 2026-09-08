@@ -414,7 +414,7 @@
                   </span>
                 </div>
                 <p class="text-[11px] text-slate-300">
-                  Area Staging Pallet Terpadu sesuai Kolom P (Line Utama) & Kolom O (Line 33 s/d Line 62) & Kolom Q (Pintu 08-15) • Klik nomor ST/BR untuk rincian barang pivot
+                  Area Staging Pallet: Kolom O (LINE OUTBOUND) • Kolom P (LPN ST/BR Pallet) • Kolom Q (Pintu 08-15) • Klik nomor ST/BR untuk rincian barang pivot
                 </p>
               </div>
             </div>
@@ -742,13 +742,13 @@
       QTY: 4,          // Kolom E: Kuantitas Barang (QTY)
       ROUTE_LC: 5,     // Kolom F: Header asli "ROUTE" -> Berfungsi sebagai Nomor LC (Loading Card)
       CUBE_CBM: 6,     // Kolom G: Header asli "CUBE"  -> Volume CBM desimal
-      STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" -> Berisi kode ST0 atau BR000 (regex /(?:ST|BR)0\d+/i)
+      STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" (fallback format lama)
       LOADED_L: 11,    // Kolom L: Data Loading / Jam Load / Status Muat
       LOADED_M: 12,    // Kolom M: Data Loading / Checker / Status Muat
-      LINE_O: 14,      // Kolom O: Penyesuaian Line Staging / Alokasi Line Pintu
-      LINE_P: 15,      // Kolom P: Data Kolom LINE Staging Utama
-      LINE: 15,        // Kolom P sebagai default utama untuk LINE
-      PINTU: 16,       // Kolom Q: Header asli "PINTU" -> Nomor pintu outbound ("P01", "P08", "P15", "P8", "8", dst.)
+      LINE_O: 14,      // Kolom O: LINE OUTBOUND (Nomor Line Staging, misal: 42, 33-35)
+      LINE_P: 15,      // Kolom P: LPN (Nomor Pallet Staging, misal: ST00193301, ST00194309)
+      LPN_P: 15,       // Kolom P: LPN (Nomor Pallet Staging)
+      PINTU: 16,       // Kolom Q: Header asli "PINTU" -> Nomor pintu outbound ("P01", "P08", "P12", "P15", "8", dst.)
       TYPE_ARMADA: 17, // Kolom R: Header asli "TYPE ARMADA" -> Jenis armada ("CDD", "Wingbox", dll)
       PIC: 18,         // Kolom S: Header asli "PIC" -> Nama Petugas / Checker yang bertugas
       CBM_ARMADA: 19   // Kolom T: Header asli "CBM ARMADA" -> Nilai CBM armada (misal: 15, 11, 24, 37)
@@ -1199,6 +1199,19 @@
         return groupedDoors;
       }
 
+      // Sesuai instruksi pengguna:
+      // "jika line 42 dikolom O maka di dashboard ikut ambil kolom O"
+      // "jika ST00 dikolom P maka isinya mengikuti kolom P bukan data dari kolom K tolong disesuaikan lagi"
+      // Deteksi apakah dataset memiliki barcode ST/BR di Kolom P (LPN):
+      let isLpnInColP = false;
+      for (const r of rows) {
+        const valP = String(getCellRawValue(r, SHEET_COLUMNS.LINE_P) || '').trim();
+        if (/(?:ST|BR)0?\d+/i.test(valP)) {
+          isLpnInColP = true;
+          break;
+        }
+      }
+
       // Loop seluruh baris mulai dari indeks 0 (atau baris 2 sheet jika baris 1 adalah header)
       rows.forEach((row, rowIndex) => {
         // Aturan 2: Cek apakah kolom Q terisi. Jika kosong/null/blank, skip baris ini sepenuhnya.
@@ -1312,52 +1325,71 @@
           }
         }
 
-        // Ekstrak Kolom P dan Kolom O untuk penempatan Line Staging:
-        // Sesuai instruksi:
-        // - "untuk kolom line ambil data dari kolom P" (prioritas utama penempatan line per ST/Pallet)
-        // - "dan untuk line nya juga mengikuti dari kolom O bisa disesuaikan" (alokasi line pintu & adaptasi line)
-        const lineCellP = getCellRawValue(row, SHEET_COLUMNS.LINE_P);
+        // Ekstrak Kolom O (LINE OUTBOUND) dan Kolom P (LPN):
         const lineCellO = getCellRawValue(row, SHEET_COLUMNS.LINE_O);
+        const lineCellP = getCellRawValue(row, SHEET_COLUMNS.LINE_P);
 
-        const parsedLinesP = parseLineNumbers(lineCellP);
-        const parsedLinesO = parseLineNumbers(lineCellO);
-
-        // Kumpulkan deteksi nomor line untuk pintu (baik yang ada di Kolom P maupun Kolom O)
-        parsedLinesP.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
-        parsedLinesO.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
-
-        // Tentukan alokasi nomor line spesifik untuk ST/Pallet pada baris ini:
-        // Prioritaskan Kolom P terlebih dahulu, jika kosong ikuti data dari Kolom O
         let targetLineForRow = null;
         let lineRawForRow = '';
-        if (parsedLinesP.length > 0) {
-          targetLineForRow = parsedLinesP[0];
-          lineRawForRow = String(lineCellP || '').trim();
-        } else if (parsedLinesO.length > 0) {
-          targetLineForRow = parsedLinesO[0];
-          lineRawForRow = String(lineCellO || '').trim();
-        }
+        let st0Match = null;
 
-        // Aturan 4: Cek token ST/BR (misal ST00193301, ST00194309, BR00080423)
-        // 1. Cek Kolom K (STATUS 2)
-        const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
-        let st0Match = kRaw.match(/(?:ST|BR)0\d+/i);
+        if (isLpnInColP) {
+          // ===================================================================
+          // MODE UTAMA (Sesuai Struktur Sheet Pengguna):
+          // - Kolom O (LINE OUTBOUND) berisi nomor Line (misal: 42, Line 42)
+          // - Kolom P (LPN) berisi nomor ST/BR Pallet (misal: ST00193301, ST00194309, ST00194314)
+          // - Data ST/LPN mengikuti Kolom P, BUKAN data dari Kolom K!
+          // ===================================================================
+          const parsedLinesO = parseLineNumbers(lineCellO);
+          if (parsedLinesO.length > 0) {
+            targetLineForRow = parsedLinesO[0];
+            lineRawForRow = String(lineCellO || '').trim();
+            parsedLinesO.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+          } else {
+            const parsedLinesP = parseLineNumbers(lineCellP);
+            if (parsedLinesP.length > 0) {
+              targetLineForRow = parsedLinesP[0];
+              lineRawForRow = String(lineCellP || '').trim();
+              parsedLinesP.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+            } else if (groupedDoors[doorNum].linesSet.size > 0) {
+              targetLineForRow = Array.from(groupedDoors[doorNum].linesSet)[0];
+            }
+          }
 
-        // 2. Jika tidak ada di Kolom K, cek Kolom P (LPN) yang sering berisi ST00193301 / ST00194309
-        if (!st0Match) {
-          const pRaw = String(getCellRawValue(row, SHEET_COLUMNS.LINE_P) || '').trim();
-          st0Match = pRaw.match(/(?:ST|BR)0\d+/i);
-        }
+          // Nomor ST/Pallet diambil langsung dari Kolom P (LPN):
+          const pRaw = String(lineCellP || '').trim();
+          st0Match = pRaw.match(/(?:ST|BR)0?\d+/i);
+          // CATATAN: Jangan ambil dari Kolom K! Jika di Kolom P tidak ada ST/BR,
+          // berarti barang baris ini belum memiliki LPN staging aktif.
+        } else {
+          // ===================================================================
+          // MODE FALLBACK / FORMAT LAMA:
+          // Kolom P / O = LINE, Kolom K (STATUS 2) = ST
+          // ===================================================================
+          const parsedLinesP = parseLineNumbers(lineCellP);
+          const parsedLinesO = parseLineNumbers(lineCellO);
+          parsedLinesP.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+          parsedLinesO.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
 
-        // 3. Jika belum ditemukan, periksa kolom Status lainnya (Col 11 / STATUS 3, Col 12 / STATUS 4, Col 13 / STATUS 5, Col 9 / STATUS 1)
-        if (!st0Match) {
-          const altCols = [11, 12, 13, 9];
-          for (const cIdx of altCols) {
-            const val = String(getCellRawValue(row, cIdx) || '').trim();
-            const m = val.match(/(?:ST|BR)0\d+/i);
-            if (m) {
-              st0Match = m;
-              break;
+          if (parsedLinesO.length > 0) {
+            targetLineForRow = parsedLinesO[0];
+            lineRawForRow = String(lineCellO || '').trim();
+          } else if (parsedLinesP.length > 0) {
+            targetLineForRow = parsedLinesP[0];
+            lineRawForRow = String(lineCellP || '').trim();
+          }
+
+          const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
+          st0Match = kRaw.match(/(?:ST|BR)0?\d+/i);
+          if (!st0Match) {
+            const altCols = [11, 12, 13, 9];
+            for (const cIdx of altCols) {
+              const val = String(getCellRawValue(row, cIdx) || '').trim();
+              const m = val.match(/(?:ST|BR)0?\d+/i);
+              if (m) {
+                st0Match = m;
+                break;
+              }
             }
           }
         }
