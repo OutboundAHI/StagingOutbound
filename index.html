@@ -157,7 +157,7 @@
               Monitoring Staging Outbound
             </h1>
             <span class="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded">
-              Dock 08 - 15 • Kolom O (Line) & Kolom Q (Pintu)
+              Dock 08 - 15 • Kolom P (Line) & Kolom O • Kolom Q (Pintu)
             </span>
           </div>
           <p class="text-xs text-slate-400">
@@ -380,7 +380,7 @@
                 </span>
               </div>
               <span class="text-xs text-slate-400 font-medium hidden md:inline">
-                • Status Armada, PIC Checker, No. LC, Kolom O (Line), Kolom Q (Pintu)
+                • Status Armada, PIC Checker, No. LC, Kolom P (Line) & Kolom O, Kolom Q (Pintu)
               </span>
             </div>
 
@@ -410,11 +410,11 @@
                     LINE STAGING OUTBOUND (LINE 33 - LINE 62)
                   </h2>
                   <span id="lines-main-subtitle" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded">
-                    1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Data Kolom O)
+                    1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Data Kolom P & Kolom O)
                   </span>
                 </div>
                 <p class="text-[11px] text-slate-300">
-                  Area Staging Pallet Terpadu sesuai Kolom O (Line 33 s/d Line 62) & Kolom Q (Pintu 08-15) • Klik nomor ST/BR untuk rincian barang pivot
+                  Area Staging Pallet Terpadu sesuai Kolom P (Line Utama) & Kolom O (Line 33 s/d Line 62) & Kolom Q (Pintu 08-15) • Klik nomor ST/BR untuk rincian barang pivot
                 </p>
               </div>
             </div>
@@ -545,6 +545,8 @@
             <li><strong>Kolom C</strong>: ARTICLE (Nomor Article / Kode Barang)</li>
             <li><strong>Kolom D</strong>: NAMA BARANG (Deskripsi Nama Barang)</li>
             <li><strong>Kolom E</strong>: QTY (Jumlah Kuantitas Barang)</li>
+            <li><strong>Kolom P</strong>: LINE (Data nomor Line staging per pallet/barang)</li>
+            <li><strong>Kolom O</strong>: LINE (Penyesuaian nomor line / alokasi staging line pintu)</li>
             <li><strong>Kolom Q</strong>: PINTU (contoh: "P08", "P11" diubah jadi 8, 11)</li>
             <li><strong>Kolom R</strong>: TYPE ARMADA (contoh: "CDD", "Wingbox")</li>
             <li><strong>Kolom S</strong>: PIC (Nama Petugas / Checker yang bertugas)</li>
@@ -742,7 +744,9 @@
       STATUS_2: 10,    // Kolom K: Header asli "STATUS 2" -> Berisi kode ST0 atau BR000 (regex /(?:ST|BR)0\d+/i)
       LOADED_L: 11,    // Kolom L: Data Loading / Jam Load / Status Muat
       LOADED_M: 12,    // Kolom M: Data Loading / Checker / Status Muat
-      LINE: 14,        // Kolom O: Header asli "LINE" -> Menentukan alokasi Line Staging (misal: "33", "34", "Line 33", "33-35")
+      LINE_O: 14,      // Kolom O: Penyesuaian Line Staging / Alokasi Line Pintu
+      LINE_P: 15,      // Kolom P: Data Kolom LINE Staging Utama
+      LINE: 15,        // Kolom P sebagai default utama untuk LINE
       PINTU: 16,       // Kolom Q: Header asli "PINTU" -> Nomor pintu outbound ("P01", "P08", "P15", "P8", "8", dst.)
       TYPE_ARMADA: 17, // Kolom R: Header asli "TYPE ARMADA" -> Jenis armada ("CDD", "Wingbox", dll)
       PIC: 18,         // Kolom S: Header asli "PIC" -> Nama Petugas / Checker yang bertugas
@@ -750,7 +754,7 @@
     };
 
     /**
-     * Parsing nomor Line dari Kolom O sheet:
+     * Parsing nomor Line dari Kolom P & Kolom O sheet:
      * Mendukung format seperti "33", "Line 33", "L33", "33-35", "33 - 35", "33, 34", "Line 33-34"
      */
     function parseLineNumbers(raw) {
@@ -763,15 +767,17 @@
       if (rangeMatch) {
         const start = parseInt(rangeMatch[1], 10);
         const end = parseInt(rangeMatch[2], 10);
-        if (!isNaN(start) && !isNaN(end) && end >= start && (end - start) <= 12) {
+        if (!isNaN(start) && !isNaN(end) && end >= start && (end - start) <= 15) {
           const list = [];
           for (let l = start; l <= end; l++) list.push(l);
           return list;
         }
       }
 
+      // Bersihkan akhiran desimal jika ada (misal "33.0")
+      const cleanStr = str.replace(/[.,]0+\b/g, '');
       // Ekstrak seluruh angka individual yang valid (misal "33, 34" atau "Line 33")
-      const matches = str.match(/\d+/g);
+      const matches = cleanStr.match(/\d+/g);
       if (matches) {
         const nums = matches.map(m => parseInt(m, 10)).filter(n => !isNaN(n) && n > 0 && n <= 120);
         return Array.from(new Set(nums));
@@ -952,7 +958,9 @@
             rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${item.st}-OK`;
             rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
-            rowArr[SHEET_COLUMNS.LINE] = item.line; // Kolom O: Line Staging (33, 34)
+            rowArr[SHEET_COLUMNS.LINE_O] = '33-35';   // Kolom O: Alokasi Line Pintu (33-35)
+            rowArr[SHEET_COLUMNS.LINE_P] = item.line; // Kolom P: Data Kolom Line Spesifik (33, 34)
+            rowArr[SHEET_COLUMNS.LINE] = item.line;   // Fallback Line
             rowArr[SHEET_COLUMNS.PINTU] = 'P08';    // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             rowArr[SHEET_COLUMNS.PIC] = pic;
@@ -975,7 +983,9 @@
             unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kosong / belum ada ST
             unRow[SHEET_COLUMNS.LOADED_L] = '';
             unRow[SHEET_COLUMNS.LOADED_M] = '';
-            unRow[SHEET_COLUMNS.LINE] = '33-35'; // Kolom O: Line Staging
+            unRow[SHEET_COLUMNS.LINE_O] = '33-35'; // Kolom O: Line Staging Pintu
+            unRow[SHEET_COLUMNS.LINE_P] = '33-35'; // Kolom P: Line Staging
+            unRow[SHEET_COLUMNS.LINE] = '33-35';
             unRow[SHEET_COLUMNS.PINTU] = 'P08';   // Kolom Q: Nomor Pintu Outbound
             unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             unRow[SHEET_COLUMNS.PIC] = pic;
@@ -1004,7 +1014,9 @@
             rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${screenshotSt}-OK`;
             rowArr[SHEET_COLUMNS.LOADED_L] = item.loaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = item.loaded ? item.time : '';
-            rowArr[SHEET_COLUMNS.LINE] = item.line; // Kolom O: Line Staging
+            rowArr[SHEET_COLUMNS.LINE_O] = '36-38';   // Kolom O: Alokasi Line Pintu (36-38)
+            rowArr[SHEET_COLUMNS.LINE_P] = item.line; // Kolom P: Data Kolom Line Spesifik (36, 37, 38)
+            rowArr[SHEET_COLUMNS.LINE] = item.line;   // Fallback
             rowArr[SHEET_COLUMNS.PINTU] = 'P09';    // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             rowArr[SHEET_COLUMNS.PIC] = pic;
@@ -1047,7 +1059,9 @@
             rowArr[SHEET_COLUMNS.STATUS_2] = `PLT-${st0Code}-OK`;
             rowArr[SHEET_COLUMNS.LOADED_L] = isThisLoaded ? 'LOADED' : '';
             rowArr[SHEET_COLUMNS.LOADED_M] = isThisLoaded ? `10:${String((i * 4) % 55).padStart(2, '0')}` : '';
-            rowArr[SHEET_COLUMNS.LINE] = targetLineForThisSt; // Kolom O: Line Staging (33-62)
+            rowArr[SHEET_COLUMNS.LINE_O] = lineRangeStr; // Kolom O: Alokasi Line Staging Pintu
+            rowArr[SHEET_COLUMNS.LINE_P] = targetLineForThisSt; // Kolom P: Line Staging Spesifik (33-62)
+            rowArr[SHEET_COLUMNS.LINE] = targetLineForThisSt;
             rowArr[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
             rowArr[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             rowArr[SHEET_COLUMNS.PIC] = pic;
@@ -1072,7 +1086,9 @@
             unRow[SHEET_COLUMNS.STATUS_2] = ''; // Kolom K kosong / belum ada ST
             unRow[SHEET_COLUMNS.LOADED_L] = '';
             unRow[SHEET_COLUMNS.LOADED_M] = '';
-            unRow[SHEET_COLUMNS.LINE] = lineRangeStr; // Kolom O: Line Staging
+            unRow[SHEET_COLUMNS.LINE_O] = lineRangeStr; // Kolom O: Line Staging Pintu
+            unRow[SHEET_COLUMNS.LINE_P] = lineRangeStr; // Kolom P: Line Staging
+            unRow[SHEET_COLUMNS.LINE] = lineRangeStr;
             unRow[SHEET_COLUMNS.PINTU] = `P${doorNum < 10 ? '0' + doorNum : doorNum}`; // Kolom Q: Nomor Pintu Outbound
             unRow[SHEET_COLUMNS.TYPE_ARMADA] = armada;
             unRow[SHEET_COLUMNS.PIC] = pic;
@@ -1290,11 +1306,30 @@
           }
         }
 
-        // Ekstrak Kolom O (LINE) untuk penempatan Line Staging
-        const lineCellRaw = getCellRawValue(row, SHEET_COLUMNS.LINE);
-        const parsedLines = parseLineNumbers(lineCellRaw);
-        if (parsedLines.length > 0) {
-          parsedLines.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+        // Ekstrak Kolom P dan Kolom O untuk penempatan Line Staging:
+        // Sesuai instruksi:
+        // - "untuk kolom line ambil data dari kolom P" (prioritas utama penempatan line per ST/Pallet)
+        // - "dan untuk line nya juga mengikuti dari kolom O bisa disesuaikan" (alokasi line pintu & adaptasi line)
+        const lineCellP = getCellRawValue(row, SHEET_COLUMNS.LINE_P);
+        const lineCellO = getCellRawValue(row, SHEET_COLUMNS.LINE_O);
+
+        const parsedLinesP = parseLineNumbers(lineCellP);
+        const parsedLinesO = parseLineNumbers(lineCellO);
+
+        // Kumpulkan deteksi nomor line untuk pintu (baik yang ada di Kolom P maupun Kolom O)
+        parsedLinesP.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+        parsedLinesO.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
+
+        // Tentukan alokasi nomor line spesifik untuk ST/Pallet pada baris ini:
+        // Prioritaskan Kolom P terlebih dahulu, jika kosong ikuti data dari Kolom O
+        let targetLineForRow = null;
+        let lineRawForRow = '';
+        if (parsedLinesP.length > 0) {
+          targetLineForRow = parsedLinesP[0];
+          lineRawForRow = String(lineCellP || '').trim();
+        } else if (parsedLinesO.length > 0) {
+          targetLineForRow = parsedLinesO[0];
+          lineRawForRow = String(lineCellO || '').trim();
         }
 
         // Aturan 4: Cek kolom K (STATUS 2): ekstrak token yang match regex /(?:ST|BR)0\d+/i
@@ -1342,8 +1377,9 @@
           if ((!stEntry.lc || stEntry.lc === '-') && lcRoute) {
             stEntry.lc = lcRoute;
           }
-          if ((stEntry.line === null || stEntry.line === undefined) && parsedLines.length > 0) {
-            stEntry.line = parsedLines[0];
+          if ((stEntry.line === null || stEntry.line === undefined) && targetLineForRow !== null) {
+            stEntry.line = targetLineForRow;
+            stEntry.lineRaw = lineRawForRow;
           }
         } else {
           stEntry = {
@@ -1353,8 +1389,8 @@
             totalQty: qtyVal,
             rowCount: 1,
             doorNum: doorNum,
-            line: parsedLines.length > 0 ? parsedLines[0] : null,
-            lineRaw: lineCellRaw,
+            line: targetLineForRow,
+            lineRaw: lineRawForRow,
             rows: [rowIndex + 2],
             articlesMap: new Map()
           };
@@ -1381,15 +1417,15 @@
         }
       });
 
-      // Masukkan nomor staging unik yang sudah dipivot ke slot line sesuai data Kolom O
+      // Masukkan nomor staging unik yang sudah dipivot ke slot line sesuai data Kolom P & Kolom O
       TARGET_DOORS.forEach((doorNum, doorIdx) => {
         const doorObj = groupedDoors[doorNum];
         doorObj.unassignedArticles = Array.from(doorObj.unassignedArticlesMap.values());
         doorObj.loadedArticles = Array.from(doorObj.loadedArticlesMap.values());
 
-        // 1. Tentukan urutan Line untuk Pintu ini dari Kolom O
+        // 1. Tentukan urutan Line untuk Pintu ini dari Kolom P & Kolom O
         let detectedLines = Array.from(doorObj.linesSet).sort((a, b) => a - b);
-        // Fallback jika data Kolom O belum diisi di sheet: gunakan pemetaan default dermaga
+        // Fallback jika data Kolom P & Kolom O belum diisi di sheet: gunakan pemetaan default dermaga
         if (detectedLines.length === 0) {
           detectedLines = DEFAULT_DOOR_LINES[doorNum] || [33 + doorIdx * 3, 33 + doorIdx * 3 + 1, 33 + doorIdx * 3 + 2];
         }
@@ -2036,7 +2072,7 @@
     /**
      * Render komponen Pintu & Line:
      * 1. Pintu dipisah menjadi deretan kartu tersendiri di bagian atas (8 pintu: PINTU 08 - 15)
-     * 2. Line disatukan dalam 1 kotak staging terpadu di bagian bawah menyesuaikan data Kolom O (Line 33 s/d 62)
+     * 2. Line disatukan dalam 1 kotak staging terpadu di bagian bawah menyesuaikan data Kolom P & Kolom O (Line 33 s/d 62)
      */
     function renderDoorsUI() {
       const doorsContainer = document.getElementById('doors-container');
@@ -2289,13 +2325,13 @@
       });
 
       // =======================================================================
-      // 2. RENDER SEKSI LINE STAGING (1 KOTAK BESAR MENYESUAIKAN DATA DARI KOLOM O)
+      // 2. RENDER SEKSI LINE STAGING (1 KOTAK BESAR MENYESUAIKAN DATA DARI KOLOM P & KOLOM O)
       // =======================================================================
       // Seluruh line (Line 33 s/d Line 62 = 30 Line) disusun berbaris ke kanan dalam 1 kotak staging terpadu
       const allRenderedLines = [];
       const renderedLineSet = new Set();
 
-      // 1. Kumpulkan line dari masing-masing pintu (berdasarkan data Kolom O / mapping pintu)
+      // 1. Kumpulkan line dari masing-masing pintu (berdasarkan data Kolom P & Kolom O / mapping pintu)
       TARGET_DOORS.forEach((doorNum, doorIdx) => {
         const doorData = state.dataDoors[doorNum] || { armada: '', pallets: [], lines: [] };
         const lines = (doorData.lines && doorData.lines.length > 0)
@@ -2423,7 +2459,7 @@
       }
       const linesSubEl = document.getElementById('lines-main-subtitle');
       if (linesSubEl) {
-        linesSubEl.textContent = `1 Kotak Staging Terpadu • ${totalLines} Line (9 Slot Pallet / Line • Data Kolom O)`;
+        linesSubEl.textContent = `1 Kotak Staging Terpadu • ${totalLines} Line (9 Slot Pallet / Line • Data Kolom P & Kolom O)`;
       }
 
       updateHeaderStats();
