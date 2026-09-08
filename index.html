@@ -425,6 +425,7 @@
               <div class="inline-flex items-center gap-1 px-2 py-1 bg-slate-800/90 text-slate-200 border border-slate-700 rounded text-[10.5px]">
                 <span class="text-slate-400 text-[10px] uppercase font-bold mr-0.5">Navigasi:</span>
                 <button type="button" onclick="scrollToSpecificLine(33)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 33 (Awal)">◀ Line 33</button>
+                <button type="button" onclick="scrollToSpecificLine(42)" class="px-1.5 py-0.5 bg-blue-800 hover:bg-blue-700 rounded text-[10px] font-bold text-blue-200 hover:text-white transition cursor-pointer" title="Lompat ke Line 42">Line 42</button>
                 <button type="button" onclick="scrollToSpecificLine(45)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 45 (Tengah)">Line 45</button>
                 <button type="button" onclick="scrollToSpecificLine(51)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 51 (Pintu 14)">Line 51</button>
                 <button type="button" onclick="scrollToSpecificLine(57)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 57 (Pintu 15)">Line 57</button>
@@ -761,6 +762,11 @@
       if (raw === undefined || raw === null) return [];
       const str = String(raw).trim();
       if (!str) return [];
+
+      // Jika teks adalah kode status/LPN barcode (seperti ST00193301, BR00080423, DS..., LD...), jangan anggap sebagai nomor line
+      if (/^(?:ST|BR|DS|LD|PLT|SO|DO|PO)\d+/i.test(str)) {
+        return [];
+      }
 
       // Cek apakah berupa rentang seperti "33-35", "33 - 35", "LINE 33 - 35"
       const rangeMatch = str.match(/(\d+)\s*[-–—]\s*(\d+)/);
@@ -1332,11 +1338,32 @@
           lineRawForRow = String(lineCellO || '').trim();
         }
 
-        // Aturan 4: Cek kolom K (STATUS 2): ekstrak token yang match regex /(?:ST|BR)0\d+/i
+        // Aturan 4: Cek token ST/BR (misal ST00193301, ST00194309, BR00080423)
+        // 1. Cek Kolom K (STATUS 2)
         const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
-        const st0Match = kRaw.match(/(?:ST|BR)0\d+/i);
+        let st0Match = kRaw.match(/(?:ST|BR)0\d+/i);
+
+        // 2. Jika tidak ada di Kolom K, cek Kolom P (LPN) yang sering berisi ST00193301 / ST00194309
         if (!st0Match) {
-          // Keterangan yang belum ada tulisannya atau kosong pada Kolom K:
+          const pRaw = String(getCellRawValue(row, SHEET_COLUMNS.LINE_P) || '').trim();
+          st0Match = pRaw.match(/(?:ST|BR)0\d+/i);
+        }
+
+        // 3. Jika belum ditemukan, periksa kolom Status lainnya (Col 11 / STATUS 3, Col 12 / STATUS 4, Col 13 / STATUS 5, Col 9 / STATUS 1)
+        if (!st0Match) {
+          const altCols = [11, 12, 13, 9];
+          for (const cIdx of altCols) {
+            const val = String(getCellRawValue(row, cIdx) || '').trim();
+            const m = val.match(/(?:ST|BR)0\d+/i);
+            if (m) {
+              st0Match = m;
+              break;
+            }
+          }
+        }
+
+        if (!st0Match) {
+          // Keterangan yang belum ada nomor ST/BR (misal belum selesai packing/staging):
           // Akumulasikan nilai CBM (Kolom G), QTY (Kolom E), dan data article untuk pintu ini
           groupedDoors[doorNum].unassignedCbm += cbmVal;
           groupedDoors[doorNum].unassignedQty += qtyVal;
@@ -1363,7 +1390,7 @@
           }
           return; // Skip dari assign pallet slot
         }
-        const st0Token = st0Match[0].toUpperCase(); // Ambil token ST/BR unik (misal ST00192825 atau BR00019286)
+        const st0Token = st0Match[0].toUpperCase(); // Ambil token ST/BR unik (misal ST00192825, ST00193301, BR00019286)
 
         // PIVOT & AGREGASI: Cukup 1 perwakilan per nomor ST per pintu, CBM dari kolom G dijumlahkan
         const doorMap = doorStagingMaps[doorNum];
@@ -1417,6 +1444,15 @@
         }
       });
 
+      // Kumpulkan line-line yang secara aktif terdeteksi dari sheet per pintu (berdasarkan Kolom P & Kolom O)
+      const activeLinesPerDoor = {};
+      const allActiveSheetLines = new Set();
+      TARGET_DOORS.forEach(doorNum => {
+        const detected = Array.from(groupedDoors[doorNum].linesSet).sort((a, b) => a - b);
+        activeLinesPerDoor[doorNum] = detected;
+        detected.forEach(ln => allActiveSheetLines.add(ln));
+      });
+
       // Masukkan nomor staging unik yang sudah dipivot ke slot line sesuai data Kolom P & Kolom O
       TARGET_DOORS.forEach((doorNum, doorIdx) => {
         const doorObj = groupedDoors[doorNum];
@@ -1424,10 +1460,21 @@
         doorObj.loadedArticles = Array.from(doorObj.loadedArticlesMap.values());
 
         // 1. Tentukan urutan Line untuk Pintu ini dari Kolom P & Kolom O
-        let detectedLines = Array.from(doorObj.linesSet).sort((a, b) => a - b);
-        // Fallback jika data Kolom P & Kolom O belum diisi di sheet: gunakan pemetaan default dermaga
+        let detectedLines = activeLinesPerDoor[doorNum];
         if (detectedLines.length === 0) {
-          detectedLines = DEFAULT_DOOR_LINES[doorNum] || [33 + doorIdx * 3, 33 + doorIdx * 3 + 1, 33 + doorIdx * 3 + 2];
+          // Fallback: gunakan DEFAULT_DOOR_LINES, tetapi hindari line yang sudah aktif digunakan oleh pintu lain di sheet
+          const defaultCandidates = DEFAULT_DOOR_LINES[doorNum] || [33 + doorIdx * 3, 33 + doorIdx * 3 + 1, 33 + doorIdx * 3 + 2];
+          const available = defaultCandidates.filter(ln => !allActiveSheetLines.has(ln));
+          detectedLines = available.length > 0 ? available : defaultCandidates;
+        } else {
+          // Jika pintu ini aktif di sheet (misal Pintu 12 memakai Line 42), tambahkan default lines miliknya yang belum dipakai pintu lain
+          const defLines = DEFAULT_DOOR_LINES[doorNum] || [];
+          defLines.forEach(dln => {
+            if (!allActiveSheetLines.has(dln) && !detectedLines.includes(dln)) {
+              detectedLines.push(dln);
+            }
+          });
+          detectedLines.sort((a, b) => a - b);
         }
         doorObj.lines = detectedLines;
 
@@ -2329,42 +2376,59 @@
       // =======================================================================
       // Seluruh line (Line 33 s/d Line 62 = 30 Line) disusun berbaris ke kanan dalam 1 kotak staging terpadu
       const allRenderedLines = [];
-      const renderedLineSet = new Set();
 
-      // 1. Kumpulkan line dari masing-masing pintu (berdasarkan data Kolom P & Kolom O / mapping pintu)
-      TARGET_DOORS.forEach((doorNum, doorIdx) => {
-        const doorData = state.dataDoors[doorNum] || { armada: '', pallets: [], lines: [] };
-        const lines = (doorData.lines && doorData.lines.length > 0)
-          ? doorData.lines
-          : (DEFAULT_DOOR_LINES[doorNum] || [33 + doorIdx * 3, 33 + doorIdx * 3 + 1, 33 + doorIdx * 3 + 2]);
-        
-        lines.forEach((lineNum, lIdx) => {
-          if (!renderedLineSet.has(lineNum)) {
-            renderedLineSet.add(lineNum);
-            allRenderedLines.push({
-              lineNum,
-              doorNum,
-              doorData,
-              lineIndexInDoor: lIdx
-            });
-          }
-        });
-      });
-
-      // 2. Pastikan seluruh rentang Line 33 sampai Line 62 selalu lengkap dan ada
+      // Susun seluruh 30 Line (33 sampai 62) dengan kepemilikan Pintu yang akurat:
+      // Prioritas 1: Pintu yang memiliki pallet teralokasi pada line ini (linePalletsMap > 0)
+      // Prioritas 2: Pintu yang secara aktif mendeteksi line ini dari sheet (linesSet)
+      // Prioritas 3: Pintu yang memiliki line ini di daftar doorData.lines
+      // Prioritas 4: Fallback DEFAULT_DOOR_LINES
       for (let ln = TOTAL_STAGING_LINES_MIN; ln <= TOTAL_STAGING_LINES_MAX; ln++) {
-        if (!renderedLineSet.has(ln)) {
-          renderedLineSet.add(ln);
-          const defDoorStr = Object.keys(DEFAULT_DOOR_LINES).find(d => DEFAULT_DOOR_LINES[d].includes(ln)) || '15';
-          const defaultDoor = parseInt(defDoorStr, 10);
-          const doorData = state.dataDoors[defaultDoor] || { armada: '', pallets: [], lines: [] };
-          allRenderedLines.push({
-            lineNum: ln,
-            doorNum: defaultDoor,
-            doorData,
-            lineIndexInDoor: 0
-          });
+        let assignedDoorNum = null;
+
+        // Prioritas 1: Pintu dengan pallet terisi di line ini
+        for (const dNum of TARGET_DOORS) {
+          const dData = state.dataDoors[dNum];
+          if (dData && dData.linePalletsMap && dData.linePalletsMap[ln] && dData.linePalletsMap[ln].length > 0) {
+            assignedDoorNum = dNum;
+            break;
+          }
         }
+
+        // Prioritas 2: Pintu yang mendeteksi line ini di sheet
+        if (assignedDoorNum === null) {
+          for (const dNum of TARGET_DOORS) {
+            const dData = state.dataDoors[dNum];
+            if (dData && dData.linesSet && dData.linesSet.has && dData.linesSet.has(ln)) {
+              assignedDoorNum = dNum;
+              break;
+            }
+          }
+        }
+
+        // Prioritas 3: Pintu yang mengalokasikan line ini di doorData.lines
+        if (assignedDoorNum === null) {
+          for (const dNum of TARGET_DOORS) {
+            const dData = state.dataDoors[dNum];
+            if (dData && Array.isArray(dData.lines) && dData.lines.includes(ln)) {
+              assignedDoorNum = dNum;
+              break;
+            }
+          }
+        }
+
+        // Prioritas 4: Fallback DEFAULT_DOOR_LINES
+        if (assignedDoorNum === null) {
+          const defDoorStr = Object.keys(DEFAULT_DOOR_LINES).find(d => DEFAULT_DOOR_LINES[d].includes(ln)) || '15';
+          assignedDoorNum = parseInt(defDoorStr, 10);
+        }
+
+        const doorData = state.dataDoors[assignedDoorNum] || { armada: '', pallets: [], lines: [] };
+        allRenderedLines.push({
+          lineNum: ln,
+          doorNum: assignedDoorNum,
+          doorData,
+          lineIndexInDoor: 0
+        });
       }
 
       // Urutkan Line secara menaik dari Line 33 sampai Line 62
@@ -2393,7 +2457,28 @@
       linesContainer.style.minWidth = `${minWidthPx}px`;
 
       allRenderedLines.forEach(item => {
-        const { lineNum, doorNum, doorData } = item;
+        const { lineNum } = item;
+        let doorNum = item.doorNum;
+        let doorData = item.doorData;
+
+        // Ambil pallet untuk line ini dari linePalletsMap (maks 9 slot per line)
+        let linePallets = (doorData.linePalletsMap && doorData.linePalletsMap[lineNum])
+          ? doorData.linePalletsMap[lineNum]
+          : [];
+
+        // Proteksi jika doorData tidak memiliki pallet untuk line ini tetapi ada pintu lain yang mengalokasikan pallet ke line ini:
+        if (linePallets.length === 0) {
+          for (const dNum of TARGET_DOORS) {
+            const d = state.dataDoors[dNum];
+            if (d && d.linePalletsMap && d.linePalletsMap[lineNum] && d.linePalletsMap[lineNum].length > 0) {
+              doorNum = dNum;
+              doorData = d;
+              linePallets = d.linePalletsMap[lineNum];
+              break;
+            }
+          }
+        }
+
         const lineName = `Line ${lineNum}`;
         const lineCol = document.createElement('div');
         lineCol.id = `line-col-${lineNum}`;
@@ -2422,11 +2507,6 @@
           </div>
         `;
         lineCol.appendChild(stgHeader);
-
-        // Ambil pallet untuk line ini dari linePalletsMap (maks 9 slot per line)
-        const linePallets = (doorData.linePalletsMap && doorData.linePalletsMap[lineNum])
-          ? doorData.linePalletsMap[lineNum]
-          : [];
 
         for (let slotIdx = 0; slotIdx < 9; slotIdx++) {
           const slotNum = slotIdx + 1;
