@@ -863,6 +863,20 @@
       15: [57, 58, 59, 60, 61, 62]
     };
 
+    /**
+     * Dapatkan nomor pintu default berdasarkan nomor Line jika Kolom Q pada baris tersebut kosong
+     * (Misal Line 42 -> Pintu 11, Line 48 -> Pintu 13, Line 58 -> Pintu 15)
+     */
+    function getDoorFromLine(lineNum) {
+      if (!lineNum || isNaN(lineNum)) return null;
+      for (const [doorStr, lines] of Object.entries(DEFAULT_DOOR_LINES)) {
+        if (lines.includes(lineNum)) {
+          return parseInt(doorStr, 10);
+        }
+      }
+      return null;
+    }
+
     // Rentang Line Staging Gudang Terpadu (30 Line: 33 s/d 62)
     const TOTAL_STAGING_LINES_MIN = 33;
     const TOTAL_STAGING_LINES_MAX = 62;
@@ -1111,11 +1125,41 @@
         }
       });
 
-      // Tambahkan baris dengan kolom Q kosong (harus di-skip)
+      // Tambahkan baris simulasi sesuai pengujian pengguna:
+      // Kasus 1: ST/BR ada di Kolom K tetapi Kolom O kosong -> Di dashboard slot line HARUS KOSONG!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: '10239088',
+        [SHEET_COLUMNS.NAMA_BARANG]: 'KOPI BUBUK INSTAN 20X30G',
+        [SHEET_COLUMNS.QTY]: 50,
+        [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.15,
+        [SHEET_COLUMNS.STATUS_2]: 'BR00079395', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '',            // KOSONG di Kolom O -> TIDAK BOLEH MUNCUL DI LINE APAPUN!
+        [SHEET_COLUMNS.PINTU]: 'P08',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
+        [SHEET_COLUMNS.PIC]: 'AHMAD'
+      });
+
+      // Kasus 2: Kolom O terisi Line 42 dan Kolom K terisi ST00192520, tetapi Kolom Q kosong -> Otomatis ke Line 42 (Pintu 11)!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: '10124509',
+        [SHEET_COLUMNS.NAMA_BARANG]: 'SUSU KENTAL MANIS CAN 370G',
+        [SHEET_COLUMNS.QTY]: 75,
+        [SHEET_COLUMNS.ROUTE_LC]: '260905L072',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.95,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00192520', // Ada di Kolom K
+        [SHEET_COLUMNS.LINE_O]: '42',           // Kolom O: Line 42
+        [SHEET_COLUMNS.PINTU]: '',              // Kolom Q kosong -> Otomatis dipetakan ke Line 42
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+        [SHEET_COLUMNS.PIC]: 'HENDRA'
+      });
+
+      // Tambahkan baris dengan kolom Q kosong dan kolom O kosong (harus di-skip sepenuhnya)
       demoRows.push({
         [SHEET_COLUMNS.ROUTE_LC]: '260905L999',
         [SHEET_COLUMNS.STATUS_2]: 'ST00199999',
-        [SHEET_COLUMNS.PINTU]: '', // Q kosong -> harus di-skip
+        [SHEET_COLUMNS.LINE_O]: '',
+        [SHEET_COLUMNS.PINTU]: '', // Q kosong dan O kosong -> harus di-skip
       });
 
       return demoRows;
@@ -1208,28 +1252,35 @@
 
       // Loop seluruh baris mulai dari indeks 0 (atau baris 2 sheet jika baris 1 adalah header)
       rows.forEach((row, rowIndex) => {
-        // Aturan 2: Cek apakah kolom Q terisi. Jika kosong/null/blank, skip baris ini sepenuhnya.
+        // 1. Ekstrak Kolom O: LINE OUTBOUND (Nomor Line Staging 33 s/d 62)
+        const lineCellO = getCellRawValue(row, SHEET_COLUMNS.LINE_O);
+        const parsedLinesO = parseLineNumbers(lineCellO);
+        const targetLineForRow = (parsedLinesO.length > 0) ? parsedLinesO[0] : null;
+        const lineRawForRow = (parsedLinesO.length > 0) ? String(lineCellO || '').trim() : '';
+
+        // 2. Ekstrak Kolom Q: PINTU Outbound (contoh: "P08", "pintu 13", "12")
         const qRaw = String(getCellRawValue(row, SHEET_COLUMNS.PINTU) || '').trim();
-        if (!qRaw) {
-          return; // Skip baris dengan Q kosong
+        let doorNum = null;
+        if (qRaw && qRaw.toUpperCase() !== 'PINTU') {
+          const doorDigits = qRaw.match(/\d+/);
+          if (doorDigits) {
+            doorNum = parseInt(doorDigits[0], 10);
+          }
         }
 
-        // Cek jika baris ini adalah header teks yang ikut terbaca (misal kata "PINTU")
-        if (qRaw.toUpperCase() === 'PINTU') {
-          return; // Skip header
+        // Jika Kolom Q kosong, tentukan pintu berdasarkan nomor Line di Kolom O (misal Line 42 -> Pintu 11, Line 48 -> Pintu 13)
+        if (!doorNum && targetLineForRow) {
+          doorNum = getDoorFromLine(targetLineForRow);
         }
 
-        // Aturan 3: Normalisasi nilai kolom Q menjadi angka murni
-        // Contoh: "P01" -> 1, "P11" -> 11, "P8" -> 8, "P15" -> 15
-        const doorDigits = qRaw.match(/\d+/);
-        if (!doorDigits) {
-          return; // Bukan format pintu valid
-        }
-        const doorNum = parseInt(doorDigits[0], 10);
-
-        // Hanya proses pintu yang ada dalam jangkauan dashboard (PINTU 8 sampai 15)
-        if (!TARGET_DOORS.includes(doorNum)) {
+        // Jika pintu tetap tidak valid atau di luar target (Pintu 8 sampai 15), lewati baris ini
+        if (!doorNum || !TARGET_DOORS.includes(doorNum)) {
           return;
+        }
+
+        // Jika baris ini memiliki Line di Kolom O, daftarkan ke linesSet pintu
+        if (targetLineForRow) {
+          groupedDoors[doorNum].linesSet.add(targetLineForRow);
         }
 
         // Ekstrak Kolom F (LC/ROUTE), Kolom R (TYPE_ARMADA), Kolom S (PIC), dan Kolom T (CBM ARMADA) yang berkaitan dengan pintu
@@ -1286,7 +1337,6 @@
         }
 
         // Evaluasi Kolom L & Kolom M untuk status MUAT (LOADED):
-        // Sesuai instruksi user: "Loaded nya ambil data cbm berdasarkan kolom L dan M jumlah cbm nya pada kolom G"
         const valL = getCellRawValue(row, SHEET_COLUMNS.LOADED_L);
         const valM = getCellRawValue(row, SHEET_COLUMNS.LOADED_M);
         const isRowLoaded = (valL !== null && valL !== undefined && String(valL).trim() !== '') ||
@@ -1320,57 +1370,18 @@
         }
 
         // =====================================================================
-        // SUMBER DATA:
-        // 1. Line: TETAP DARI KOLOM O (LINE OUTBOUND).
-        // 2. Data Pallet (ST00 / BR00 / LD00 / DS00): AMBIL DARI KOLOM K (STATUS 2).
+        // ATURAN MUTLAK USER:
+        // "jika contoh ST00 ada didata dikolom K dan Line ada dikolom O maka didashboard ada,
+        //  jika ST00 ada didata kolom K dan Line tidak ada isinya diikolom O maka didashboard kosong"
         // =====================================================================
-        const lineCellO = getCellRawValue(row, SHEET_COLUMNS.LINE_O);
-        const parsedLinesO = parseLineNumbers(lineCellO);
-
-        let targetLineForRow = null;
-        let lineRawForRow = '';
-
-        if (parsedLinesO.length > 0) {
-          targetLineForRow = parsedLinesO[0];
-          lineRawForRow = String(lineCellO || '').trim();
-          parsedLinesO.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
-        } else {
-          // Fallback jika Kolom O baris ini belum terisi, gunakan nomor line yang telah terdeteksi pada pintu ini
-          const lineCellP = getCellRawValue(row, SHEET_COLUMNS.LINE_P);
-          const parsedLinesP = parseLineNumbers(lineCellP);
-          if (parsedLinesP.length > 0) {
-            targetLineForRow = parsedLinesP[0];
-            lineRawForRow = String(lineCellP || '').trim();
-            parsedLinesP.forEach(ln => groupedDoors[doorNum].linesSet.add(ln));
-          } else if (groupedDoors[doorNum].linesSet.size > 0) {
-            targetLineForRow = Array.from(groupedDoors[doorNum].linesSet)[0];
-          }
-        }
-
-        // Ekstrak data ST00, BR00, LD00, DS00 dari Kolom K (STATUS 2)
+        
+        // Ekstrak data ST00, BR00, LD00, DS00 HANYA DARI KOLOM K (STATUS 2)
         const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
-        let st0Match = kRaw.match(/(?:ST|BR|LD|DS)\s*0?\d+/i);
+        const st0Match = kRaw.match(/(?:ST|BR|LD|DS)\s*0?\d+/i);
 
-        // Fallback jika Kolom K belum terisi, cek Kolom P (LPN) atau kolom status alternatif sebagai toleransi
-        if (!st0Match) {
-          const pRaw = String(getCellRawValue(row, SHEET_COLUMNS.LINE_P) || '').trim();
-          st0Match = pRaw.match(/(?:ST|BR|LD|DS)\s*0?\d+/i);
-        }
-        if (!st0Match) {
-          const altCols = [11, 12, 13, 9];
-          for (const cIdx of altCols) {
-            const val = String(getCellRawValue(row, cIdx) || '').trim();
-            const m = val.match(/(?:ST|BR|LD|DS)\s*0?\d+/i);
-            if (m) {
-              st0Match = m;
-              break;
-            }
-          }
-        }
-
-        if (!st0Match) {
-          // Keterangan yang belum ada nomor ST/BR/LD/DS (misal belum selesai packing/staging):
-          // Akumulasikan nilai CBM (Kolom G), QTY (Kolom E), dan data article untuk pintu ini
+        // KONDISI 1: Jika Kolom O KOSONG (tidak ada nomor line), maka di dashboard slot line HARUS KOSONG!
+        // Jangan pernah menempatkan baris ini ke slot line manapun!
+        if (!targetLineForRow) {
           groupedDoors[doorNum].unassignedCbm += cbmVal;
           groupedDoors[doorNum].unassignedQty += qtyVal;
           groupedDoors[doorNum].unassignedRowCount += 1;
@@ -1394,11 +1405,41 @@
               rows: [rowIndex + 2]
             });
           }
-          return; // Skip dari assign pallet slot
+          return; // Selesai, baris tanpa nomor line di Kolom O TIDAK BOLEH MASUK KE SLOT LINE!
         }
-        const st0Token = st0Match[0].replace(/\s+/g, '').toUpperCase(); // Ambil token ST/BR/LD/DS unik (misal ST00192520, BR00080423, DS00663610, LD00123456)
 
-        // PIVOT & AGREGASI: Cukup 1 perwakilan per nomor ST per pintu, CBM dari kolom G dijumlahkan
+        // KONDISI 2: Jika Kolom O terisi nomor line tetapi Kolom K belum terisi kode pallet (ST/BR/LD/DS):
+        if (!st0Match) {
+          groupedDoors[doorNum].unassignedCbm += cbmVal;
+          groupedDoors[doorNum].unassignedQty += qtyVal;
+          groupedDoors[doorNum].unassignedRowCount += 1;
+          groupedDoors[doorNum].unassignedRows.push(rowIndex + 2);
+
+          const artKey = `${articleRaw || '-'}___${namaBarangRaw || '-'}`;
+          const unMap = groupedDoors[doorNum].unassignedArticlesMap;
+          if (unMap.has(artKey)) {
+            const artItem = unMap.get(artKey);
+            artItem.qty += qtyVal;
+            artItem.cbm += cbmVal;
+            artItem.rowCount += 1;
+            artItem.rows.push(rowIndex + 2);
+          } else {
+            unMap.set(artKey, {
+              article: articleRaw || '-',
+              namaBarang: namaBarangRaw || '-',
+              qty: qtyVal,
+              cbm: cbmVal,
+              rowCount: 1,
+              rows: [rowIndex + 2]
+            });
+          }
+          return;
+        }
+
+        // KONDISI 3: KEDUA SYARAT TERPENUHI (Ada kode pallet di Kolom K DAN ada nomor line di Kolom O)!
+        const st0Token = st0Match[0].replace(/\s+/g, '').toUpperCase(); // Misal ST00192520, BR00079395, LD00146839, DS00663570
+
+        // PIVOT & AGREGASI: 1 perwakilan per nomor ST/BR/LD/DS per pintu & line, CBM dari kolom G dijumlahkan
         const doorMap = doorStagingMaps[doorNum];
         let stEntry;
         if (doorMap.has(st0Token)) {
@@ -1410,7 +1451,7 @@
           if ((!stEntry.lc || stEntry.lc === '-') && lcRoute) {
             stEntry.lc = lcRoute;
           }
-          if ((stEntry.line === null || stEntry.line === undefined) && targetLineForRow !== null) {
+          if (!stEntry.line && targetLineForRow !== null) {
             stEntry.line = targetLineForRow;
             stEntry.lineRaw = lineRawForRow;
           }
@@ -1430,7 +1471,7 @@
           doorMap.set(st0Token, stEntry);
         }
 
-        // Agregasi pivot per article (Kolom C) + nama barang (Kolom D) di dalam ST ini
+        // Agregasi pivot per article (Kolom C) + nama barang (Kolom D) di dalam ST/BR ini
         const artKey = `${articleRaw || '-'}___${namaBarangRaw || '-'}`;
         if (stEntry.articlesMap.has(artKey)) {
           const artItem = stEntry.articlesMap.get(artKey);
@@ -1509,29 +1550,25 @@
           }
         }
 
-        // 2. Alokasikan pallet ST/BR ke masing-masing Line (maksimal 9 slot per line)
+        // 2. Alokasikan pallet ST/BR/LD/DS ke masing-masing Line SESUAI NOMOR LINE DI KOLOM O (maksimal 9 slot per line)
         const linePallets = {};
         detectedLines.forEach(ln => { linePallets[ln] = []; });
-        const unplaced = [];
 
         uniqueStagings.forEach(st => {
-          if (st.line && linePallets[st.line] && linePallets[st.line].length < 9) {
-            linePallets[st.line].push(st);
-          } else {
-            unplaced.push(st);
+          // HANYA alokasikan jika st.line terisi dan cocok dengan line yang terdaftar
+          if (st.line) {
+            if (!linePallets[st.line]) {
+              linePallets[st.line] = [];
+            }
+            if (linePallets[st.line].length < 9) {
+              linePallets[st.line].push(st);
+            } else {
+              // Jika line tersebut sudah melebihi 9 pallet, simpan ke overflow pintu/line ini
+              doorObj.overflow.push(st);
+            }
           }
         });
-
-        // Alokasikan sisa pallet ke line yang masih memiliki kapasitas slot kosong
-        unplaced.forEach(st => {
-          const targetLine = detectedLines.find(ln => linePallets[ln].length < 9);
-          if (targetLine) {
-            st.line = targetLine;
-            linePallets[targetLine].push(st);
-          } else {
-            doorObj.overflow.push(st);
-          }
-        });
+        // JANGAN PERNAH mendistribusikan pallet ke line lain yang tidak sesuai dengan Kolom O!
 
         doorObj.linePalletsMap = linePallets;
 
