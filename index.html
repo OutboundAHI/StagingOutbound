@@ -801,64 +801,87 @@
     /**
      * Deteksi dinamis kolom Google Sheets jika header/kolom bergeser di GViz API
      */
+    /**
+     * Deteksi dinamis kolom Google Sheets jika header/kolom bergeser di GViz API
+     * Mengutamakan pemetaan alfabet baku A-T, dan hanya melakukan deteksi ketat tanpa false-positive
+     */
     function detectSheetColumns(cols) {
+      // Selalu inisialisasi / reset ke indeks standar alfabet Google Spreadsheet:
+      SHEET_COLUMNS.ARTICLE = 2;      // Kolom C
+      SHEET_COLUMNS.NAMA_BARANG = 3;  // Kolom D
+      SHEET_COLUMNS.QTY = 4;          // Kolom E
+      SHEET_COLUMNS.ROUTE_LC = 5;     // Kolom F (ROUTE / No LC)
+      SHEET_COLUMNS.CUBE_CBM = 6;     // Kolom G (CUBE / CBM)
+      SHEET_COLUMNS.STATUS_2 = 10;    // Kolom K (STATUS 2 - ST00/BR00/DS00)
+      SHEET_COLUMNS.LOADED_L = 11;    // Kolom L
+      SHEET_COLUMNS.LOADED_M = 12;    // Kolom M
+      SHEET_COLUMNS.LINE_O = 14;      // Kolom O (LINE OUTBOUND - Line Staging 33 s/d 62)
+      SHEET_COLUMNS.LINE_P = 15;      // Kolom P (LINE / LPN)
+      SHEET_COLUMNS.LPN_P = 15;       // Kolom P
+      SHEET_COLUMNS.PINTU = 16;       // Kolom Q (PINTU)
+      SHEET_COLUMNS.TYPE_ARMADA = 17; // Kolom R (TYPE ARMADA)
+      SHEET_COLUMNS.PIC = 18;         // Kolom S (PIC)
+      SHEET_COLUMNS.CBM_ARMADA = 19;  // Kolom T (CBM ARMADA)
+
       if (!cols || !Array.isArray(cols)) return;
+
       cols.forEach((col, idx) => {
         if (!col) return;
         const colId = String(col.id || '').toUpperCase().trim();
         const label = String(col.label || '').toUpperCase().trim();
 
-        // Kolom O: LINE OUTBOUND (Nomor Line Staging)
-        if (colId === 'O' || label.includes('LINE OUTBOUND') || (label.includes('LINE') && (idx === 14 || idx === 15))) {
+        // 1. Kolom O: LINE OUTBOUND (Nomor Line Staging 33 s/d 62)
+        // PENTING: JANGAN gunakan label.includes('LINE') karena Kolom P adalah 'LINE'!
+        if (colId === 'O' || label === 'LINE OUTBOUND' || label === 'LINE_OUTBOUND' || label === 'OUTBOUND LINE') {
           SHEET_COLUMNS.LINE_O = idx;
         }
-        // Kolom K: STATUS 2 (Sumber utama Pallet ST00, BR00, DS00)
-        if (colId === 'K' || label.includes('STATUS 2') || label === 'STATUS2') {
-          SHEET_COLUMNS.STATUS_2 = idx;
-        }
-        // Kolom Q: PINTU
-        if (colId === 'Q' || label.includes('PINTU') || label.includes('DOOR')) {
-          SHEET_COLUMNS.PINTU = idx;
-        }
-        // Kolom C: ARTICLE
-        if (colId === 'C' || label.includes('ARTICLE')) {
-          SHEET_COLUMNS.ARTICLE = idx;
-        }
-        // Kolom D: NAMA BARANG
-        if (colId === 'D' || label.includes('NAMA BARANG') || label.includes('DESC')) {
-          SHEET_COLUMNS.NAMA_BARANG = idx;
-        }
-        // Kolom E: QTY
-        if (colId === 'E' || label === 'QTY' || label.includes('QUANTITY')) {
-          SHEET_COLUMNS.QTY = idx;
-        }
-        // Kolom F: ROUTE / LC
-        if (colId === 'F' || label.includes('ROUTE') || label.includes('LC')) {
-          SHEET_COLUMNS.ROUTE_LC = idx;
-        }
-        // Kolom G: CUBE / CBM
-        if (colId === 'G' || label.includes('CUBE') || label.includes('CBM')) {
+        // 2. Kolom G: CUBE / CBM (Volume barang - PENTING: JANGAN gunakan includes('CBM') karena Kolom T adalah 'CBM ARMADA'!)
+        else if (colId === 'G' || label === 'CUBE' || label === 'CBM' || label === 'VOLUME' || label === 'CUBE CBM') {
           SHEET_COLUMNS.CUBE_CBM = idx;
         }
-        // Kolom L: LOADED L
-        if (colId === 'L' || (label.includes('LOADED') && idx === 11)) {
-          SHEET_COLUMNS.LOADED_L = idx;
+        // 3. Kolom F: ROUTE / LC (Nomor Loading Card - PENTING: JANGAN gunakan includes('LC') sembarangan!)
+        else if (colId === 'F' || label === 'ROUTE' || label === 'NO. LC' || label === 'NO LC' || label === 'LC') {
+          SHEET_COLUMNS.ROUTE_LC = idx;
         }
-        // Kolom M: LOADED M / CHECKER
-        if (colId === 'M' || (label.includes('LOADED') && idx === 12)) {
-          SHEET_COLUMNS.LOADED_M = idx;
+        // 4. Kolom K: STATUS 2 (Pallet ST00, BR00, DS00)
+        else if (colId === 'K' || label === 'STATUS 2' || label === 'STATUS2') {
+          SHEET_COLUMNS.STATUS_2 = idx;
         }
-        // Kolom R: TYPE ARMADA
-        if (colId === 'R' || label.includes('ARMADA')) {
+        // 5. Kolom Q: PINTU
+        else if (colId === 'Q' || label === 'PINTU' || label === 'DOOR') {
+          SHEET_COLUMNS.PINTU = idx;
+        }
+        // 6. Kolom R: TYPE ARMADA
+        else if (colId === 'R' || label === 'TYPE ARMADA' || label === 'TIPE ARMADA' || label === 'ARMADA') {
           SHEET_COLUMNS.TYPE_ARMADA = idx;
         }
-        // Kolom S: PIC
-        if (colId === 'S' || label.includes('PIC') || label.includes('CHECKER')) {
+        // 7. Kolom S: PIC
+        else if (colId === 'S' || label === 'PIC' || label === 'CHECKER') {
           SHEET_COLUMNS.PIC = idx;
         }
-        // Kolom T: CBM ARMADA
-        if (colId === 'T' || label.includes('CBM ARMADA')) {
+        // 8. Kolom T: CBM ARMADA
+        else if (colId === 'T' || label === 'CBM ARMADA' || label === 'KAPASITAS ARMADA') {
           SHEET_COLUMNS.CBM_ARMADA = idx;
+        }
+        // 9. Kolom C: ARTICLE
+        else if (colId === 'C' || label === 'ARTICLE' || label === 'NO ARTICLE') {
+          SHEET_COLUMNS.ARTICLE = idx;
+        }
+        // 10. Kolom D: NAMA BARANG
+        else if (colId === 'D' || label === 'NAMA BARANG' || label === 'DESC' || label === 'DESCRIPTION') {
+          SHEET_COLUMNS.NAMA_BARANG = idx;
+        }
+        // 11. Kolom E: QTY
+        else if (colId === 'E' || label === 'QTY' || label === 'QUANTITY' || label === 'JUMLAH') {
+          SHEET_COLUMNS.QTY = idx;
+        }
+        // 12. Kolom L: LOADED L
+        else if (colId === 'L' || (label.includes('LOADED') && idx === 11)) {
+          SHEET_COLUMNS.LOADED_L = idx;
+        }
+        // 13. Kolom M: LOADED M
+        else if (colId === 'M' || (label.includes('LOADED') && idx === 12)) {
+          SHEET_COLUMNS.LOADED_M = idx;
         }
       });
     }
@@ -1551,13 +1574,8 @@
         // =====================================================================
         
         // Ekstrak data ST00, BR00, DS00 HANYA DARI KOLOM K (STATUS 2)
+        // Nilai LD00 tidak dimasukkan ke slot line (dihapus dari line) karena hanya ST, BR, DS yang valid untuk line
         const kRaw = String(getCellRawValue(row, SHEET_COLUMNS.STATUS_2) || '').trim();
-
-        // Nilai LD00 dihapus dari line karena tidak terpakai
-        if (/^LD\s*0?\d+/i.test(kRaw)) {
-          return;
-        }
-
         const st0Match = kRaw.match(/(?:ST|BR|DS)\s*0?\d+/i);
 
         // KONDISI 1: Jika Kolom O KOSONG (tidak ada nomor line), maka di dashboard slot line HARUS KOSONG!
