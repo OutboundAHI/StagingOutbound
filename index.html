@@ -269,19 +269,6 @@
 
       <!-- Ringkasan Statistik Cepat -->
       <div class="flex flex-wrap items-center gap-4 text-xs">
-        
-        <div class="flex items-center gap-1.5">
-          <span class="text-slate-500 font-medium">Pintu Aktif:</span>
-          <span id="stat-active-doors" class="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">8 Pintu</span>
-        </div>
-
-        <div class="flex items-center gap-1.5">
-          <span class="text-slate-500 font-medium">Total Pallet Terisi:</span>
-          <span id="stat-filled-pallets" class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            0 / 216 (0%)
-          </span>
-        </div>
-
         <div class="flex items-center gap-1.5">
           <span class="text-slate-500 font-medium">Total CBM:</span>
           <span id="stat-total-cbm" class="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-mono">
@@ -455,28 +442,11 @@
         <section id="lines-unified-section" class="w-full bg-white border-2 border-slate-900 rounded-xl shadow-md min-w-[2380px] transition-all">
           
           <!-- Header Utama 1 Kotak Line Staging -->
-          <div class="bg-slate-900 text-white px-4 py-2.5 flex flex-wrap items-center justify-between border-b-2 border-slate-900 gap-3 rounded-t-lg">
-            <div class="flex items-center gap-2.5">
-              <span class="w-2.5 h-6 rounded-xs bg-emerald-500 inline-block"></span>
-              <div>
-                <div class="flex items-center gap-2">
-                  <h2 id="lines-main-title" class="text-sm sm:text-base font-black uppercase tracking-wider text-white">
-                    LINE STAGING OUTBOUND (LINE 33 - LINE 62)
-                  </h2>
-                  <span id="lines-main-subtitle" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded">
-                    1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Line dari Kolom O, Pallet dari Kolom K)
-                  </span>
-                </div>
-                <p class="text-[11px] text-slate-300">
-                  Area Staging Pallet: Kolom O (LINE OUTBOUND) • Kolom K (Data ST00 / BR00 / DS00) • Kolom Q (Pintu 08-15) • Klik nomor Pallet untuk rincian barang pivot
-                </p>
-              </div>
-            </div>
-
-            <!-- Tombol Navigasi Cepat, Ringkasan Status ST/BR, dan Indikator Warna -->
-            <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
-              <!-- Tombol Navigasi Cepat ke Line (Langsung Lompat ke Line 33 / Line 62) -->
-              <div class="inline-flex items-center gap-1 px-2 py-1 bg-slate-800/90 text-slate-200 border border-slate-700 rounded text-[10.5px]">
+          <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between border-b-2 border-slate-900 gap-3 rounded-t-lg">
+            
+            <!-- Sisi Kiri: Tombol Navigasi Cepat ke Line -->
+            <div class="flex items-center justify-start gap-1.5 shrink-0 min-w-[320px]">
+              <div class="inline-flex items-center gap-1 px-2 py-1 bg-slate-800/90 text-slate-200 border border-slate-700 rounded text-[10.5px] font-mono">
                 <span class="text-slate-400 text-[10px] uppercase font-bold mr-0.5">Navigasi:</span>
                 <button type="button" onclick="scrollToSpecificLine(33)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 33 (Awal)">◀ Line 33</button>
                 <button type="button" onclick="scrollToSpecificLine(42)" class="px-1.5 py-0.5 bg-blue-800 hover:bg-blue-700 rounded text-[10px] font-bold text-blue-200 hover:text-white transition cursor-pointer" title="Lompat ke Line 42">Line 42</button>
@@ -485,16 +455,26 @@
                 <button type="button" onclick="scrollToSpecificLine(57)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 57 (Pintu 15)">Line 57</button>
                 <button type="button" onclick="scrollToSpecificLine(62)" class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded text-[10.5px] transition cursor-pointer shadow-xs" title="Lompat ke Line 62 (Line Paling Kanan)">▶ Line 62</button>
               </div>
+            </div>
 
-              <div class="hidden 2xl:inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-800/90 text-slate-200 border border-slate-700 rounded text-[10.5px] font-bold">
-                <span class="text-slate-400">Pilihan:</span>
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-rose-950/70 text-rose-300 border border-rose-500/40 text-[9.5px]">🔴 Merah</span>
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-amber-950/70 text-amber-300 border border-amber-500/40 text-[9.5px]">🟡 Kuning</span>
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-slate-700/70 text-slate-200 border border-slate-400/40 text-[9.5px]">⚪ Putih</span>
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-blue-950/70 text-blue-300 border border-blue-500/40 text-[9.5px]">🔵 Biru</span>
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-orange-950/70 text-orange-300 border border-orange-500/40 text-[9.5px]">🟠 Orange</span>
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 text-[9.5px]">🟢 Hijau</span>
+            <!-- Posisi Tengah: Judul & Subjudul Line Staging Outbound -->
+            <div class="flex-1 flex flex-col items-center justify-center text-center px-2">
+              <div class="flex items-center justify-center gap-2">
+                <span class="w-2.5 h-6 rounded-xs bg-emerald-500 inline-block shrink-0"></span>
+                <h2 id="lines-main-title" class="text-sm sm:text-base font-black uppercase tracking-wider text-white">
+                  LINE STAGING OUTBOUND (LINE 33 - LINE 62)
+                </h2>
+                <span id="lines-main-subtitle" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded shrink-0">
+                  1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Line dari Kolom O, Pallet dari Kolom K)
+                </span>
               </div>
+              <p class="text-[11px] text-slate-300 mt-0.5 text-center">
+                Area Staging Pallet: Kolom O (LINE OUTBOUND) • Kolom K (Data ST00 / BR00 / DS00) • Kolom Q (Pintu 08-15) • Klik nomor Pallet untuk rincian barang pivot
+              </p>
+            </div>
+
+            <!-- Sisi Kanan: Ringkasan Status ST/BR dan Kosong -->
+            <div class="flex items-center justify-end gap-2 text-xs font-mono shrink-0 min-w-[320px]">
               <span class="px-2.5 py-1 bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 rounded font-bold text-[11px]">
                 Terisi ST: <span id="summary-st0-count">0</span>
               </span>
@@ -505,6 +485,7 @@
                 Kosong: <span id="summary-empty-count">0</span>
               </span>
             </div>
+
           </div>
 
           <!-- Konten 30 Line di dalam SATU KOTAK (Line 33 s/d Line 62 tanpa skat / pembatas) -->
@@ -2363,9 +2344,18 @@
 
       const percentage = state.stats.totalCapacity > 0 ? ((totalFilled / state.stats.totalCapacity) * 100).toFixed(1) : '0.0';
 
-      document.getElementById('stat-active-doors').textContent = `${activeDoorsCount} Pintu`;
-      document.getElementById('stat-filled-pallets').textContent = `${totalFilled} / ${state.stats.totalCapacity} (${percentage}%)`;
-      document.getElementById('stat-total-cbm').textContent = formatCbm(totalCbm);
+      const activeDoorsEl = document.getElementById('stat-active-doors');
+      if (activeDoorsEl) {
+        activeDoorsEl.textContent = `${activeDoorsCount} Pintu`;
+      }
+      const filledPalletsEl = document.getElementById('stat-filled-pallets');
+      if (filledPalletsEl) {
+        filledPalletsEl.textContent = `${totalFilled} / ${state.stats.totalCapacity} (${percentage}%)`;
+      }
+      const totalCbmEl = document.getElementById('stat-total-cbm');
+      if (totalCbmEl) {
+        totalCbmEl.textContent = formatCbm(totalCbm);
+      }
       
       const unassignedEl = document.getElementById('stat-unassigned-cbm');
       if (unassignedEl) {
