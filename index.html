@@ -136,7 +136,10 @@
     }
   </style>
 </head>
-<body class="flex flex-col min-h-screen text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+<body class="flex flex-col min-h-screen text-slate-800 antialiased selection:bg-blue-600 selection:text-white relative">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full"></div>
 
   <!-- ========================================== -->
   <!-- HEADER UTAMA DASHBOARD OPERASIONAL         -->
@@ -319,6 +322,60 @@
 
       </div>
 
+      <!-- Quick Barcode Scanner & Line Color Revert Tracker -->
+      <div class="w-full pt-2.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/70 -mx-4 -mb-2.5 px-4 py-2 sm:-mx-6 sm:px-6">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <span class="font-black text-slate-900 flex items-center gap-1.5 uppercase tracking-wide text-[11px]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+            Scan Barcode ST00:
+          </span>
+          <form id="form-scan-barcode" onsubmit="handleBarcodeScanSubmit(event)" class="flex items-center gap-1.5">
+            <input 
+              id="input-barcode-scanner" 
+              type="text" 
+              placeholder="Ketik/Scan ST00 (misal: ST00199740)..." 
+              class="px-2.5 py-1 text-xs border border-slate-300 rounded-md font-mono font-bold bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 w-56 sm:w-72 shadow-2xs placeholder:font-normal placeholder:text-slate-400" 
+              autocomplete="off"
+            />
+            <button 
+              type="submit" 
+              class="px-3 py-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-md text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Scan (Muat)</span>
+            </button>
+          </form>
+          <button 
+            type="button" 
+            onclick="resetAllScanned()" 
+            title="Reset status scan (kembalikan semua ST00 ke line)" 
+            class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+          >
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Reset Scan</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3 text-[11px] text-slate-600">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-blue-600 inline-block animate-pulse"></span>
+            <span>Line Auto-Sync: <strong>Warna Pintu = Warna Line</strong></span>
+          </span>
+          <div class="h-3.5 w-px bg-slate-300"></div>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-slate-300 border border-slate-400 inline-block"></span>
+            <span>ST00 discan &rarr; <strong>Hilang & Line Putih</strong></span>
+          </span>
+          <div class="h-3.5 w-px bg-slate-300"></div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-medium text-slate-500">Total Discan:</span>
+            <span id="badge-scanned-count" class="px-2 py-0.5 rounded font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">0 Pallet</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -368,20 +425,20 @@
         <section id="doors-section" class="w-full">
           
           <!-- Header Baris Line Outbound (Pintu Outbound 08 - 15) -->
-          <div class="flex items-center justify-between mb-2 px-1">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-5 rounded-xs bg-blue-600 inline-block shadow-2xs"></span>
+          <div class="flex items-center justify-between mb-2.5 px-1">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-6 rounded-xs bg-blue-600 inline-block shadow-2xs"></span>
               <div class="flex items-center gap-2">
-                <h2 class="text-xs sm:text-sm font-black uppercase text-slate-800 tracking-wider">
+                <h2 class="text-sm sm:text-base font-black uppercase text-slate-900 tracking-wider">
                   LINE OUTBOUND (PINTU OUTBOUND 08 - 15)
                 </h2>
               </div>
-              <span class="text-[11px] text-slate-400 font-medium hidden md:inline">
+              <span class="text-xs text-slate-500 font-medium hidden md:inline">
                 • Status Armada, PIC Checker, No. LC, Kolom P (Line) & Kolom O, Kolom Q (Pintu)
               </span>
             </div>
 
-            <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+            <div class="flex items-center gap-2 text-xs text-slate-500 font-mono">
               <span>Sejajar langsung dengan Line Staging di bawah ↓</span>
             </div>
           </div>
@@ -713,9 +770,17 @@
       <!-- Modal Footer -->
       <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex items-center justify-between text-xs">
         <span class="text-slate-400 italic">Tekan <kbd class="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px] text-slate-600 shadow-2xs">Esc</kbd> atau klik di luar untuk menutup</span>
-        <button id="btn-dismiss-staging-modal" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer">
-          Tutup
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="btn-scan-current-st0" onclick="scanCurrentModalPallet()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Tandai Sudah Discan (Muat)</span>
+          </button>
+          <button id="btn-dismiss-staging-modal" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer">
+            Tutup
+          </button>
+        </div>
       </div>
 
     </div>
@@ -1016,9 +1081,9 @@
     const DEFAULT_DOOR_LINES = {
       8: [33, 34, 35],
       9: [36, 37, 38],
-      10: [39, 40, 41],
+      10: [45, 46, 47], // Contoh user: Pintu 10 Line 45-47
       11: [42, 43, 44],
-      12: [45, 46, 47],
+      12: [39, 40, 41],
       13: [48, 49, 50],
       14: [51, 52, 53, 54, 55, 56],
       15: [57, 58, 59, 60, 61, 62]
@@ -1066,10 +1131,161 @@
       zoomLevel: parseFloat(localStorage.getItem('dock_zoom_level') || '1.0'),
       lineViewMode: localStorage.getItem('dock_line_view_mode') || 'dock', // 'dock' (Grup per Pintu) | 'unified' (30 Line Penuh)
       doorsPanelCollapsed: false,
-      lineColorOverrides: JSON.parse(localStorage.getItem('dock_line_colors') || '{}'),
-      doorColorOverrides: JSON.parse(localStorage.getItem('dock_door_colors') || '{}'),
-      sheetLineColors: {} // Pemetaan warna otomatis dari Kolom O sheet (misal: 35mr/36kng/37pth)
+      lineColorOverrides: {}, // Warna line 100% otomatis mengikuti pintu & data
+      doorColorOverrides: (() => {
+        try {
+          return JSON.parse(localStorage.getItem('dock_door_colors') || '{}');
+        } catch {
+          return {};
+        }
+      })(),
+      sheetLineColors: {}, // Pemetaan warna otomatis dari Kolom O sheet (misal: 35mr/36kng/37pth)
+      scannedTokens: new Set(JSON.parse(localStorage.getItem('dock_scanned_tokens') || '[]'))
     };
+    // Hapus sisa override manual lama agar warna pintu & line selalu otomatis dan variatif
+    localStorage.removeItem('dock_line_colors');
+    localStorage.removeItem('dock_door_colors');
+
+    /**
+     * Tampilkan notifikasi toast interaktif
+     */
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `p-3 rounded-lg shadow-xl text-xs font-bold font-mono transition-all transform duration-300 pointer-events-auto flex items-center justify-between gap-2 border ${
+        type === 'error' 
+          ? 'bg-rose-900 text-rose-100 border-rose-600' 
+          : 'bg-slate-900 text-emerald-300 border-emerald-500/70 shadow-emerald-950/40'
+      }`;
+      toast.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span>${type === 'error' ? '⚠️' : '✅'}</span>
+          <span>${message}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white font-bold ml-2 cursor-pointer">×</button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 350);
+      }, 3500);
+    }
+
+    /**
+     * Efek suara beep pemindai barcode (Web Audio API)
+     */
+    function playScanBeep(isSuccess = true) {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        if (isSuccess) {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1400, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1800, audioCtx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.13);
+        } else {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.22);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.23);
+        }
+      } catch (e) {
+        // Audio kontek dicegah jika belum ada interaksi pengguna
+      }
+    }
+
+    /**
+     * Simpan token yang sudah discan ke localStorage
+     */
+    function saveScannedTokens() {
+      localStorage.setItem('dock_scanned_tokens', JSON.stringify(Array.from(state.scannedTokens)));
+      const badge = document.getElementById('badge-scanned-count');
+      if (badge) {
+        badge.textContent = `${state.scannedTokens.size} Pallet`;
+      }
+    }
+
+    /**
+     * Scan ST00 / BR00:
+     * - Pallet yang discan langsung hilang dari line ("hasilnya hilang")
+     * - Jika seluruh ST00 pada line tersebut sudah discan, warna line kembali putih ("warna line kembali putih")
+     */
+    function scanPalletToken(token) {
+      if (!token) return { success: false, message: 'Kode pallet kosong' };
+      const clean = String(token).trim().toUpperCase();
+      if (!clean) return { success: false, message: 'Kode pallet kosong' };
+
+      state.scannedTokens.add(clean);
+      saveScannedTokens();
+      playScanBeep(true);
+
+      // Muat ulang data dashboard (re-process & re-render)
+      loadDashboardData(false);
+      showToast(`${clean} berhasil discan! Hasilnya dihilangkan dari line.`);
+      return { success: true, token: clean };
+    }
+    window.scanPalletToken = scanPalletToken;
+
+    /**
+     * Batalkan scan ST00 (kembalikan ke line)
+     */
+    function unscanPalletToken(token) {
+      if (!token) return;
+      const clean = String(token).trim().toUpperCase();
+      state.scannedTokens.delete(clean);
+      saveScannedTokens();
+      loadDashboardData(false);
+      showToast(`Scan dibatalkan untuk ${clean}. Pallet dikembalikan ke line.`);
+    }
+    window.unscanPalletToken = unscanPalletToken;
+
+    /**
+     * Reset seluruh status scan (kembalikan semua pallet ke line)
+     */
+    function resetAllScanned() {
+      const count = state.scannedTokens.size;
+      state.scannedTokens.clear();
+      saveScannedTokens();
+      loadDashboardData(false);
+      showToast(`Status scan direset (${count} pallet dikembalikan ke line).`);
+    }
+    window.resetAllScanned = resetAllScanned;
+
+    /**
+     * Handler submit form scanner barcode
+     */
+    function handleBarcodeScanSubmit(event) {
+      if (event) event.preventDefault();
+      const input = document.getElementById('input-barcode-scanner');
+      if (!input) return;
+      const val = input.value.trim();
+      if (!val) return;
+      scanPalletToken(val);
+      input.value = '';
+      input.focus();
+    }
+    window.handleBarcodeScanSubmit = handleBarcodeScanSubmit;
+
+    /**
+     * Handler scan dari modal rincian staging pallet
+     */
+    let currentModalPalletItem = null;
+    function scanCurrentModalPallet() {
+      if (!currentModalPalletItem || !currentModalPalletItem.st0) return;
+      scanPalletToken(currentModalPalletItem.st0);
+      const stagingDetailModal = document.getElementById('staging-detail-modal');
+      if (stagingDetailModal) stagingDetailModal.classList.add('hidden');
+    }
+    window.scanCurrentModalPallet = scanCurrentModalPallet;
 
     /**
      * Mengatur zoom level tampilan dermaga
@@ -1119,35 +1335,48 @@
       //  jika ST00/BR00/DS00 ada didata kolom K dan Line tidak ada isinya dikolom O maka didashboard kosong"
       // =======================================================================
 
-      // PINTU 08 (Line 33 s/d 35):
+      // PINTU 08 (Line 33 s/d 35 - Warna Bawaan: BIRU):
       // - Kolom O: "33-35" (Rentang line 33, 34, 35)
+      // - Line 33 memiliki 5 pallet staging aktif (ST00192821 - ST00192825) berwarna BIRU mengikuti Pintu 08
       // - Pallet terdistribusi berurutan: jika 33 penuh (9) lanjut ke 34, lalu ke 35
       // - BR00019286 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG (tidak ada nilainya)!
       // - DS00663570 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG (tidak ada nilainya)!
-      demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[0].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[0].name,
-        [SHEET_COLUMNS.QTY]: 110,
-        [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.50,
-        [SHEET_COLUMNS.STATUS_2]: 'ST00192825', // Ada di Kolom K
-        [SHEET_COLUMNS.LOADED_L]: 'LOADED',
-        [SHEET_COLUMNS.LOADED_M]: '09:40',
-        [SHEET_COLUMNS.LINE_O]: '33-35',        // Rentang 33-35 di Kolom O
-        [SHEET_COLUMNS.PINTU]: 'P08',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
-        [SHEET_COLUMNS.PIC]: 'Bambang H.',
-        [SHEET_COLUMNS.CBM_ARMADA]: 15
+      const p08ActivePallets = [
+        { st: 'ST00192821', art: catalog[0], qty: 110, cbm: 1.50 },
+        { st: 'ST00192822', art: catalog[1], qty: 95, cbm: 1.35 },
+        { st: 'ST00192823', art: catalog[2], qty: 85, cbm: 1.25 },
+        { st: 'ST00192824', art: catalog[3], qty: 70, cbm: 1.10 },
+        { st: 'ST00192825', art: catalog[4], qty: 120, cbm: 1.45 }
+      ];
+
+      p08ActivePallets.forEach(item => {
+        demoRows.push({
+          [SHEET_COLUMNS.ARTICLE]: item.art.article,
+          [SHEET_COLUMNS.NAMA_BARANG]: item.art.name,
+          [SHEET_COLUMNS.QTY]: item.qty,
+          [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
+          [SHEET_COLUMNS.CUBE_CBM]: item.cbm,
+          [SHEET_COLUMNS.STATUS_2]: item.st, // Ada di Kolom K
+          [SHEET_COLUMNS.LOADED_L]: '',      // Belum loaded -> Aktif di Line 33!
+          [SHEET_COLUMNS.LOADED_M]: '',
+          [SHEET_COLUMNS.LINE_O]: '33-35',   // Rentang 33-35 di Kolom O
+          [SHEET_COLUMNS.PINTU]: 'P08',
+          [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
+          [SHEET_COLUMNS.PIC]: 'Bambang H.',
+          [SHEET_COLUMNS.CBM_ARMADA]: 15
+        });
       });
+
+      // 1 Pallet Pintu 08 yang sudah Loaded (masuk histori muat)
       demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[1].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[1].name,
-        [SHEET_COLUMNS.QTY]: 95,
+        [SHEET_COLUMNS.ARTICLE]: catalog[5].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[5].name,
+        [SHEET_COLUMNS.QTY]: 80,
         [SHEET_COLUMNS.ROUTE_LC]: '260906L053',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.35,
-        [SHEET_COLUMNS.STATUS_2]: 'ST00192826',
+        [SHEET_COLUMNS.CUBE_CBM]: 1.20,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00192820',
         [SHEET_COLUMNS.LOADED_L]: 'LOADED',
-        [SHEET_COLUMNS.LOADED_M]: '09:45',
+        [SHEET_COLUMNS.LOADED_M]: '09:30',
         [SHEET_COLUMNS.LINE_O]: '33-35',
         [SHEET_COLUMNS.PINTU]: 'P08',
         [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG',
@@ -1269,9 +1498,10 @@
         [SHEET_COLUMNS.CBM_ARMADA]: 37
       });
 
-      // PINTU 10 (Line 39, 40, 41):
-      // - Line 39: Ada di Kolom O (39), ada ST00193150 di Kolom K -> DI DASHBOARD ADA!
-      // - BR00019522 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG!
+      // PINTU 10 (Sesuai contoh eksplisit user: Pintu 10 Line 45-47, Warna Pintu: Ungu):
+      // - Line O: '45-47'
+      // - Line 45: Ada data ST00193150 dan ST00193151 -> Line 45 OTOMATIS WARNA UNGU (mengikuti Pintu 10)!
+      // - Line 46 & 47 belum ada data -> OTOMATIS WARNA PUTIH!
       demoRows.push({
         [SHEET_COLUMNS.ARTICLE]: catalog[6].article,
         [SHEET_COLUMNS.NAMA_BARANG]: catalog[6].name,
@@ -1279,9 +1509,9 @@
         [SHEET_COLUMNS.ROUTE_LC]: '260905L064',
         [SHEET_COLUMNS.CUBE_CBM]: 1.40,
         [SHEET_COLUMNS.STATUS_2]: 'ST00193150',
-        [SHEET_COLUMNS.LOADED_L]: 'LOADED',
-        [SHEET_COLUMNS.LOADED_M]: '10:30',
-        [SHEET_COLUMNS.LINE_O]: 39,             // ADA di Kolom O -> DI DASHBOARD ADA!
+        [SHEET_COLUMNS.LOADED_L]: '',
+        [SHEET_COLUMNS.LOADED_M]: '',
+        [SHEET_COLUMNS.LINE_O]: '45-47',             // Line O: 45-47
         [SHEET_COLUMNS.PINTU]: 'P10',
         [SHEET_COLUMNS.TYPE_ARMADA]: 'FUSO',
         [SHEET_COLUMNS.PIC]: 'Ahmad Fauzi',
@@ -1293,26 +1523,25 @@
         [SHEET_COLUMNS.QTY]: 80,
         [SHEET_COLUMNS.ROUTE_LC]: '260905L064',
         [SHEET_COLUMNS.CUBE_CBM]: 1.10,
-        [SHEET_COLUMNS.STATUS_2]: 'BR00019522', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.STATUS_2]: 'ST00193151',
+        [SHEET_COLUMNS.LINE_O]: '45-47',             // Line O: 45-47
         [SHEET_COLUMNS.PINTU]: 'P10',
         [SHEET_COLUMNS.TYPE_ARMADA]: 'FUSO',
         [SHEET_COLUMNS.PIC]: 'Ahmad Fauzi',
         [SHEET_COLUMNS.CBM_ARMADA]: 27
       });
 
-      // PINTU 11 (Line 42, 43, 44):
-      // - Line 42: Ada di Kolom O (42) dan Kolom K terisi ST00192520, Kolom Q kosong -> Otomatis ke Line 42 (Pintu 11)!
-      // - BR00079395 & DS00663950 di Kolom K, TETAPI KOLOM O KOSONG -> DI DASHBOARD KOSONG!
+      // PINTU 11 (Line O: 42-44, Warna Pintu: Merah -> Line 42 otomatis Merah, Line 43 & 44 putih karena belum ada data):
+      // LC: 260919H018 | Armada: WINGBOX | Line 42: ST00199758, ST00199792 | Belum ST: 15 item
       demoRows.push({
         [SHEET_COLUMNS.ARTICLE]: catalog[3].article,
         [SHEET_COLUMNS.NAMA_BARANG]: catalog[3].name,
-        [SHEET_COLUMNS.QTY]: 75,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L072',
+        [SHEET_COLUMNS.QTY]: 7,
+        [SHEET_COLUMNS.ROUTE_LC]: '260919H018',
         [SHEET_COLUMNS.CUBE_CBM]: 0.95,
-        [SHEET_COLUMNS.STATUS_2]: 'ST00192520', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: 42,             // ADA di Kolom O (42) -> DI DASHBOARD MUNCUL DI LINE 42!
-        [SHEET_COLUMNS.PINTU]: '',              // Kolom Q kosong -> Otomatis dipetakan ke Line 42 (Pintu 11)
+        [SHEET_COLUMNS.STATUS_2]: 'ST00199758',
+        [SHEET_COLUMNS.LINE_O]: '42-44',        // Line O mencakup 42-44
+        [SHEET_COLUMNS.PINTU]: 'P11',
         [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
         [SHEET_COLUMNS.PIC]: 'Hendra P.',
         [SHEET_COLUMNS.CBM_ARMADA]: 37
@@ -1320,135 +1549,102 @@
       demoRows.push({
         [SHEET_COLUMNS.ARTICLE]: catalog[4].article,
         [SHEET_COLUMNS.NAMA_BARANG]: catalog[4].name,
-        [SHEET_COLUMNS.QTY]: 50,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L072',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.15,
-        [SHEET_COLUMNS.STATUS_2]: 'BR00079395', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '',            // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
-        [SHEET_COLUMNS.PINTU]: 'P11',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
-        [SHEET_COLUMNS.PIC]: 'Hendra P.',
-        [SHEET_COLUMNS.CBM_ARMADA]: 37
-      });
-      demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[5].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[5].name,
-        [SHEET_COLUMNS.QTY]: 65,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L072',
+        [SHEET_COLUMNS.QTY]: 6,
+        [SHEET_COLUMNS.ROUTE_LC]: '260919H018',
         [SHEET_COLUMNS.CUBE_CBM]: 0.85,
-        [SHEET_COLUMNS.STATUS_2]: 'DS00663950', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '',            // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.STATUS_2]: 'ST00199792',
+        [SHEET_COLUMNS.LINE_O]: '42-44',
         [SHEET_COLUMNS.PINTU]: 'P11',
         [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
         [SHEET_COLUMNS.PIC]: 'Hendra P.',
         [SHEET_COLUMNS.CBM_ARMADA]: 37
       });
+      // 15 item belum ST di Pintu 11 (Kolom K kosong):
+      for (let u = 0; u < 15; u++) {
+        demoRows.push({
+          [SHEET_COLUMNS.ARTICLE]: catalog[(u + 2) % catalog.length].article,
+          [SHEET_COLUMNS.NAMA_BARANG]: catalog[(u + 2) % catalog.length].name,
+          [SHEET_COLUMNS.QTY]: 10 + u * 2,
+          [SHEET_COLUMNS.ROUTE_LC]: '260919H018',
+          [SHEET_COLUMNS.CUBE_CBM]: 0.12,
+          [SHEET_COLUMNS.STATUS_2]: '',          // Belum ST
+          [SHEET_COLUMNS.LINE_O]: '',
+          [SHEET_COLUMNS.PINTU]: 'P11',
+          [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
+          [SHEET_COLUMNS.PIC]: 'Hendra P.',
+          [SHEET_COLUMNS.CBM_ARMADA]: 37
+        });
+      }
 
-      // PINTU 12 (Line 45, 46, 47):
-      // - Line 45: Ada di Kolom O (45), ada ST00193290 di Kolom K -> DI DASHBOARD ADA!
-      // - Pallet lainnya: Kolom O KOSONG -> DI DASHBOARD KOSONG!
+      // PINTU 12 (Warna Pintu: Cyan / Biru Muda):
+      // LC: 260919L009 | Kolom O: 40, 41
+      // Line 40 ada data ST00199740, ST00199394, ST00199709, BR00083957 -> Line 40 OTOMATIS WARNA CYAN!
+      // Line 41 belum ada data -> OTOMATIS PUTIH!
       demoRows.push({
         [SHEET_COLUMNS.ARTICLE]: catalog[0].article,
         [SHEET_COLUMNS.NAMA_BARANG]: catalog[0].name,
-        [SHEET_COLUMNS.QTY]: 95,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L068',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.20,
-        [SHEET_COLUMNS.STATUS_2]: 'ST00193290',
-        [SHEET_COLUMNS.LINE_O]: 45,             // ADA di Kolom O (45) -> DI DASHBOARD ADA!
+        [SHEET_COLUMNS.QTY]: 53,
+        [SHEET_COLUMNS.ROUTE_LC]: '260919L009',
+        [SHEET_COLUMNS.CUBE_CBM]: 36.41,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00199740',
+        [SHEET_COLUMNS.LINE_O]: '40, 41',
         [SHEET_COLUMNS.PINTU]: 'P12',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-20',
-        [SHEET_COLUMNS.PIC]: 'Agus Wibowo',
-        [SHEET_COLUMNS.CBM_ARMADA]: 24
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG CHASSIS',
+        [SHEET_COLUMNS.PIC]: 'RUDI FIRMANSYAH',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
       });
       demoRows.push({
         [SHEET_COLUMNS.ARTICLE]: catalog[1].article,
         [SHEET_COLUMNS.NAMA_BARANG]: catalog[1].name,
-        [SHEET_COLUMNS.QTY]: 70,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L068',
-        [SHEET_COLUMNS.CUBE_CBM]: 0.90,
-        [SHEET_COLUMNS.STATUS_2]: 'BR00019633', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
+        [SHEET_COLUMNS.QTY]: 22,
+        [SHEET_COLUMNS.ROUTE_LC]: '260919L009',
+        [SHEET_COLUMNS.CUBE_CBM]: 36.38,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00199394',
+        [SHEET_COLUMNS.LINE_O]: '40, 41',
         [SHEET_COLUMNS.PINTU]: 'P12',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-20',
-        [SHEET_COLUMNS.PIC]: 'Agus Wibowo',
-        [SHEET_COLUMNS.CBM_ARMADA]: 24
-      });
-
-      // PINTU 13 (Line 48, 49, 50):
-      // - Line 48: Ada di Kolom O (48), ada ST00193410 di Kolom K -> DI DASHBOARD ADA!
-      // - Pallet lainnya: Kolom O KOSONG -> DI DASHBOARD KOSONG!
-      demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[6].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[6].name,
-        [SHEET_COLUMNS.QTY]: 88,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L076',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.10,
-        [SHEET_COLUMNS.STATUS_2]: 'ST00193410',
-        [SHEET_COLUMNS.LINE_O]: 48,             // ADA di Kolom O (48) -> DI DASHBOARD ADA!
-        [SHEET_COLUMNS.PINTU]: 'P13',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDE LONG',
-        [SHEET_COLUMNS.PIC]: 'Rian Pratama',
-        [SHEET_COLUMNS.CBM_ARMADA]: 11
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG CHASSIS',
+        [SHEET_COLUMNS.PIC]: 'RUDI FIRMANSYAH',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
       });
       demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[7].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[7].name,
-        [SHEET_COLUMNS.QTY]: 60,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L076',
-        [SHEET_COLUMNS.CUBE_CBM]: 0.75,
-        [SHEET_COLUMNS.STATUS_2]: 'DS00664012', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
-        [SHEET_COLUMNS.PINTU]: 'P13',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDE LONG',
-        [SHEET_COLUMNS.PIC]: 'Rian Pratama',
-        [SHEET_COLUMNS.CBM_ARMADA]: 11
+        [SHEET_COLUMNS.ARTICLE]: catalog[2].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[2].name,
+        [SHEET_COLUMNS.QTY]: 8,
+        [SHEET_COLUMNS.ROUTE_LC]: '260919L009',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.19,
+        [SHEET_COLUMNS.STATUS_2]: 'ST00199709',
+        [SHEET_COLUMNS.LINE_O]: '40, 41',
+        [SHEET_COLUMNS.PINTU]: 'P12',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG CHASSIS',
+        [SHEET_COLUMNS.PIC]: 'RUDI FIRMANSYAH',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
       });
-
-      // PINTU 14 (Line 51-56):
-      // - Line 51: Ada di Kolom O (51), ada ST00193550 di Kolom K -> DI DASHBOARD ADA!
-      // - Pallet lainnya: Kolom O KOSONG -> DI DASHBOARD KOSONG!
+      demoRows.push({
+        [SHEET_COLUMNS.ARTICLE]: catalog[5].article,
+        [SHEET_COLUMNS.NAMA_BARANG]: catalog[5].name,
+        [SHEET_COLUMNS.QTY]: 1,
+        [SHEET_COLUMNS.ROUTE_LC]: '260919L009',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.05,
+        [SHEET_COLUMNS.STATUS_2]: 'BR00083957',
+        [SHEET_COLUMNS.LINE_O]: '40, 41',
+        [SHEET_COLUMNS.PINTU]: 'P12',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG CHASSIS',
+        [SHEET_COLUMNS.PIC]: 'RUDI FIRMANSYAH',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
+      });
+      // 1 item belum ST di Pintu 12 (Kolom K kosong):
       demoRows.push({
         [SHEET_COLUMNS.ARTICLE]: catalog[8].article,
         [SHEET_COLUMNS.NAMA_BARANG]: catalog[8].name,
-        [SHEET_COLUMNS.QTY]: 130,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L080',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.60,
-        [SHEET_COLUMNS.STATUS_2]: 'ST00193550',
-        [SHEET_COLUMNS.LINE_O]: 51,             // ADA di Kolom O (51) -> DI DASHBOARD ADA!
-        [SHEET_COLUMNS.PINTU]: 'P14',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'CONT-40',
-        [SHEET_COLUMNS.PIC]: 'Eko Saputra',
-        [SHEET_COLUMNS.CBM_ARMADA]: 48
-      });
-
-      // PINTU 15 (Line 57-62):
-      // - Line 57: Ada di Kolom O (57), ada ST00193680 di Kolom K -> DI DASHBOARD ADA!
-      // - Pallet lainnya: Kolom O KOSONG -> DI DASHBOARD KOSONG!
-      demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[10].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[10].name,
-        [SHEET_COLUMNS.QTY]: 105,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L084',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.35,
-        [SHEET_COLUMNS.STATUS_2]: 'ST00193680',
-        [SHEET_COLUMNS.LINE_O]: 57,             // ADA di Kolom O (57) -> DI DASHBOARD ADA!
-        [SHEET_COLUMNS.PINTU]: 'P15',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
-        [SHEET_COLUMNS.PIC]: 'Fajar N.',
-        [SHEET_COLUMNS.CBM_ARMADA]: 37
-      });
-      demoRows.push({
-        [SHEET_COLUMNS.ARTICLE]: catalog[11].article,
-        [SHEET_COLUMNS.NAMA_BARANG]: catalog[11].name,
-        [SHEET_COLUMNS.QTY]: 80,
-        [SHEET_COLUMNS.ROUTE_LC]: '260905L084',
-        [SHEET_COLUMNS.CUBE_CBM]: 1.05,
-        [SHEET_COLUMNS.STATUS_2]: 'BR00019800', // Ada di Kolom K
-        [SHEET_COLUMNS.LINE_O]: '',             // KOSONG di Kolom O -> KOSONG DI DASHBOARD!
-        [SHEET_COLUMNS.PINTU]: 'P15',
-        [SHEET_COLUMNS.TYPE_ARMADA]: 'WINGBOX',
-        [SHEET_COLUMNS.PIC]: 'Fajar N.',
-        [SHEET_COLUMNS.CBM_ARMADA]: 37
+        [SHEET_COLUMNS.QTY]: 14,
+        [SHEET_COLUMNS.ROUTE_LC]: '260919L009',
+        [SHEET_COLUMNS.CUBE_CBM]: 0.40,
+        [SHEET_COLUMNS.STATUS_2]: '',            // Belum ST
+        [SHEET_COLUMNS.LINE_O]: '',
+        [SHEET_COLUMNS.PINTU]: 'P12',
+        [SHEET_COLUMNS.TYPE_ARMADA]: 'CDD LONG CHASSIS',
+        [SHEET_COLUMNS.PIC]: 'RUDI FIRMANSYAH',
+        [SHEET_COLUMNS.CBM_ARMADA]: 15
       });
 
       return demoRows;
@@ -1746,6 +1942,71 @@
 
         // KONDISI 3: KEDUA SYARAT TERPENUHI (Ada kode pallet di Kolom K DAN ada nomor line di Kolom O)!
         const st0Token = st0Match[0].replace(/\s+/g, '').toUpperCase(); // Misal ST00192520, BR00079395, DS00663570
+
+        // =====================================================================
+        // ATURAN USER (SCAN BARCODE & AUTO-REVERT WARNA):
+        // "dan jika ST00 yang diline sudah discan maka hasilnya hilang dan warna line kembali putih"
+        // "hanya warna line yang berubah jika data dan pintu sama"
+        // =====================================================================
+        const isTokenScanned = Boolean(st0Token && state.scannedTokens && state.scannedTokens.has(st0Token));
+        const isPalletLoaded = isRowLoaded || isTokenScanned;
+
+        if (isPalletLoaded) {
+          // Jika pallet ini discan dari dashboard (bukan dari sheet L/M), akumulasikan ke loaded pintu
+          if (!isRowLoaded) {
+            groupedDoors[doorNum].loadedCbm += cbmVal;
+            groupedDoors[doorNum].loadedQty += qtyVal;
+            groupedDoors[doorNum].loadedRowCount += 1;
+
+            const loadArtKey = `${articleRaw || '-'}___${namaBarangRaw || '-'}`;
+            const lMap = groupedDoors[doorNum].loadedArticlesMap;
+            if (lMap.has(loadArtKey)) {
+              const item = lMap.get(loadArtKey);
+              item.qty += qtyVal;
+              item.cbm += cbmVal;
+              item.rowCount += 1;
+              item.rows.push(rowIndex + 2);
+            } else {
+              lMap.set(loadArtKey, {
+                article: articleRaw || '-',
+                namaBarang: namaBarangRaw || '-',
+                qty: qtyVal,
+                cbm: cbmVal,
+                valL: 'DISCAN',
+                valM: 'LOADED',
+                rowCount: 1,
+                rows: [rowIndex + 2]
+              });
+            }
+          }
+
+          // Catat ke daftar scannedPalletsMap pintu ini
+          if (!groupedDoors[doorNum].scannedPalletsMap) {
+            groupedDoors[doorNum].scannedPalletsMap = new Map();
+          }
+          if (groupedDoors[doorNum].scannedPalletsMap.has(st0Token)) {
+            const sc = groupedDoors[doorNum].scannedPalletsMap.get(st0Token);
+            sc.cbm += cbmVal;
+            sc.qty += qtyVal;
+            sc.rowCount += 1;
+          } else {
+            groupedDoors[doorNum].scannedPalletsMap.set(st0Token, {
+              st0: st0Token,
+              cbm: cbmVal,
+              qty: qtyVal,
+              rowCount: 1,
+              doorNum: doorNum,
+              line: targetLineForRow,
+              lc: lcRoute || groupedDoors[doorNum].lc || '-',
+              isTokenScanned: isTokenScanned,
+              isSheetLoaded: isRowLoaded
+            });
+          }
+
+          // PENTING: ST00 yang sudah discan TIDAK dimasukkan ke slot line ("hasilnya hilang")!
+          // Dan jika seluruh ST00 pada line ini sudah discan, line menjadi kosong dan warnanya otomatis kembali PUTIH!
+          return;
+        }
 
         // PIVOT & AGREGASI: 1 perwakilan per nomor ST/BR/DS per pintu & line, CBM dari kolom G dijumlahkan
         const doorMap = doorStagingMaps[doorNum];
@@ -2130,25 +2391,28 @@
     /**
      * Membuat elemen visual kotak slot pallet (bisa digunakan untuk mode grup per dermaga maupun 30 line penuh)
      */
-    function createPalletSlotElement(slotNum, palletItem, doorNum, lineName, doorData) {
+    function createPalletSlotElement(slotNum, palletItem, doorNum, lineName, doorData, lineTheme = null) {
       const isFilled = !!palletItem;
       const rawSt = isFilled ? String(palletItem.st0 || '').trim() : '';
       const upperSt = rawSt.toUpperCase();
       const isBr = isFilled && upperSt.startsWith('BR');
       const isDs = isFilled && upperSt.startsWith('DS');
 
-      let slotThemeClass = 'slot-filled bg-emerald-100 border-emerald-500 text-emerald-950 font-bold shadow-xs cursor-pointer';
-      let slotIndexBadgeClass = 'text-emerald-700 font-bold';
-      let multiBadgeClass = 'text-emerald-800/90 bg-emerald-200/80';
-      let cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-emerald-900 bg-emerald-200/90 border border-emerald-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
+      // Ambil tema palet warna (dari lineTheme jika diberikan, atau getDoorTheme)
+      const theme = lineTheme || getDoorTheme(doorNum);
+
+      let slotThemeClass = `slot-filled ${theme.slotBg || 'bg-blue-100'} ${theme.slotBorder || 'border-blue-500'} ${theme.slotText || 'text-blue-950'} font-bold shadow-xs cursor-pointer`;
+      let slotIndexBadgeClass = `${theme.slotIndexText || 'text-blue-700'} font-bold`;
+      let multiBadgeClass = theme.multiBadge || 'text-blue-900 bg-blue-200/90';
+      let cbmBadgeClass = theme.cbmBadgeClass || 'font-mono font-bold text-[7.5px] sm:text-[8px] text-blue-900 bg-blue-200/90 border border-blue-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
 
       if (isBr) {
-        slotThemeClass = 'slot-filled slot-br bg-sky-100 border-sky-500 text-sky-950 font-bold shadow-xs cursor-pointer';
+        slotThemeClass = `slot-filled slot-br bg-sky-100 border-sky-500 text-sky-950 font-bold shadow-xs cursor-pointer ring-1.5 ring-sky-600/70`;
         slotIndexBadgeClass = 'text-sky-700 font-bold';
         multiBadgeClass = 'text-sky-900 bg-sky-200/90';
         cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-sky-900 bg-sky-200/90 border border-sky-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
       } else if (isDs) {
-        slotThemeClass = 'slot-filled slot-ds bg-amber-100 border-amber-500 text-amber-950 font-bold shadow-xs cursor-pointer';
+        slotThemeClass = `slot-filled slot-ds bg-amber-100 border-amber-500 text-amber-950 font-bold shadow-xs cursor-pointer ring-1.5 ring-amber-600/70`;
         slotIndexBadgeClass = 'text-amber-700 font-bold';
         multiBadgeClass = 'text-amber-900 bg-amber-200/90';
         cbmBadgeClass = 'font-mono font-bold text-[7.5px] sm:text-[8px] text-amber-900 bg-amber-200/90 border border-amber-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full';
@@ -2216,8 +2480,8 @@
           part2 = '';
         }
 
-        let textColor1 = 'text-emerald-950';
-        let textColor2 = 'text-emerald-900';
+        let textColor1 = theme.slotText || 'text-slate-950';
+        let textColor2 = theme.slotText || 'text-slate-900';
         if (isBr) {
           textColor1 = 'text-sky-950 font-black';
           textColor2 = 'text-sky-900 font-black';
@@ -2276,6 +2540,12 @@
         lineHeaderBg: 'bg-blue-600 text-white border-b-2 border-blue-700',
         dotBg: 'bg-blue-500',
         ringColor: 'ring-blue-400',
+        slotBg: 'bg-blue-100 hover:bg-blue-200/90',
+        slotBorder: 'border-blue-500 hover:border-blue-600',
+        slotText: 'text-blue-950',
+        slotIndexText: 'text-blue-700 font-bold',
+        multiBadge: 'text-blue-900 bg-blue-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-blue-900 bg-blue-200/90 border border-blue-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
         hex: '#2563eb'
       },
       kuning: {
@@ -2288,6 +2558,12 @@
         lineHeaderBg: 'bg-amber-400 text-slate-950 border-b-2 border-amber-500 font-black',
         dotBg: 'bg-amber-400',
         ringColor: 'ring-amber-400',
+        slotBg: 'bg-amber-100 hover:bg-amber-200/90',
+        slotBorder: 'border-amber-500 hover:border-amber-600',
+        slotText: 'text-amber-950',
+        slotIndexText: 'text-amber-800 font-bold',
+        multiBadge: 'text-amber-950 bg-amber-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-amber-950 bg-amber-200/90 border border-amber-400/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
         hex: '#f59e0b'
       },
       merah: {
@@ -2300,6 +2576,12 @@
         lineHeaderBg: 'bg-rose-600 text-white border-b-2 border-rose-700',
         dotBg: 'bg-rose-600',
         ringColor: 'ring-rose-400',
+        slotBg: 'bg-rose-100 hover:bg-rose-200/90',
+        slotBorder: 'border-rose-500 hover:border-rose-600',
+        slotText: 'text-rose-950',
+        slotIndexText: 'text-rose-700 font-bold',
+        multiBadge: 'text-rose-900 bg-rose-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-rose-900 bg-rose-200/90 border border-rose-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
         hex: '#e11d48'
       },
       orange: {
@@ -2312,6 +2594,12 @@
         lineHeaderBg: 'bg-orange-500 text-white border-b-2 border-orange-600',
         dotBg: 'bg-orange-500',
         ringColor: 'ring-orange-400',
+        slotBg: 'bg-orange-100 hover:bg-orange-200/90',
+        slotBorder: 'border-orange-500 hover:border-orange-600',
+        slotText: 'text-orange-950',
+        slotIndexText: 'text-orange-800 font-bold',
+        multiBadge: 'text-orange-950 bg-orange-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-orange-950 bg-orange-200/90 border border-orange-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
         hex: '#f97316'
       },
       hijau: {
@@ -2324,19 +2612,31 @@
         lineHeaderBg: 'bg-emerald-600 text-white border-b-2 border-emerald-700',
         dotBg: 'bg-emerald-500',
         ringColor: 'ring-emerald-400',
+        slotBg: 'bg-emerald-100 hover:bg-emerald-200/90',
+        slotBorder: 'border-emerald-500 hover:border-emerald-600',
+        slotText: 'text-emerald-950',
+        slotIndexText: 'text-emerald-700 font-bold',
+        multiBadge: 'text-emerald-900 bg-emerald-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-emerald-900 bg-emerald-200/90 border border-emerald-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
         hex: '#059669'
       },
       putih: {
         code: 'putih',
         name: 'Putih',
-        headerBg: 'bg-slate-200',
-        headerText: 'text-slate-900 font-black',
-        badgeBg: 'bg-white text-slate-900 font-bold border border-slate-300',
-        cardBorder: 'border-slate-900',
-        lineHeaderBg: 'bg-slate-200 text-slate-900 border-b-2 border-slate-300 font-black',
-        dotBg: 'bg-slate-300',
+        headerBg: 'bg-white',
+        headerText: 'text-slate-800 font-bold',
+        badgeBg: 'bg-white text-slate-800 font-bold border border-slate-300',
+        cardBorder: 'border-slate-300',
+        lineHeaderBg: 'bg-white text-slate-800 border-b-2 border-slate-300 font-black shadow-2xs',
+        dotBg: 'bg-white border-2 border-slate-400',
         ringColor: 'ring-slate-300',
-        hex: '#cbd5e1'
+        slotBg: 'bg-slate-50',
+        slotBorder: 'border-dashed border-slate-300',
+        slotText: 'text-slate-400',
+        slotIndexText: 'text-slate-400',
+        multiBadge: 'text-slate-600 bg-slate-200',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-slate-500 bg-slate-100 border border-slate-200 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
+        hex: '#ffffff'
       },
       standby: {
         code: 'standby',
@@ -2348,21 +2648,98 @@
         lineHeaderBg: 'bg-slate-700 text-white border-b-2 border-slate-800',
         dotBg: 'bg-slate-600',
         ringColor: 'ring-slate-400',
+        slotBg: 'bg-slate-100 hover:bg-slate-200/90',
+        slotBorder: 'border-slate-400 hover:border-slate-500',
+        slotText: 'text-slate-900',
+        slotIndexText: 'text-slate-600 font-bold',
+        multiBadge: 'text-slate-800 bg-slate-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-slate-800 bg-slate-200/90 border border-slate-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
         hex: '#475569'
+      },
+      ungu: {
+        code: 'ungu',
+        name: 'Ungu',
+        headerBg: 'bg-purple-600',
+        headerText: 'text-white',
+        badgeBg: 'bg-purple-700 text-white border border-purple-300/60',
+        cardBorder: 'border-slate-900',
+        lineHeaderBg: 'bg-purple-600 text-white border-b-2 border-purple-700 font-bold',
+        dotBg: 'bg-purple-500',
+        ringColor: 'ring-purple-400',
+        slotBg: 'bg-purple-100 hover:bg-purple-200/90',
+        slotBorder: 'border-purple-500 hover:border-purple-600',
+        slotText: 'text-purple-950',
+        slotIndexText: 'text-purple-700 font-bold',
+        multiBadge: 'text-purple-900 bg-purple-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-purple-900 bg-purple-200/90 border border-purple-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
+        hex: '#9333ea'
+      },
+      cyan: {
+        code: 'cyan',
+        name: 'Cyan',
+        headerBg: 'bg-cyan-600',
+        headerText: 'text-white',
+        badgeBg: 'bg-cyan-700 text-white border border-cyan-300/60',
+        cardBorder: 'border-slate-900',
+        lineHeaderBg: 'bg-cyan-600 text-white border-b-2 border-cyan-700 font-bold',
+        dotBg: 'bg-cyan-500',
+        ringColor: 'ring-cyan-400',
+        slotBg: 'bg-cyan-100 hover:bg-cyan-200/90',
+        slotBorder: 'border-cyan-500 hover:border-cyan-600',
+        slotText: 'text-cyan-950',
+        slotIndexText: 'text-cyan-700 font-bold',
+        multiBadge: 'text-cyan-900 bg-cyan-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-cyan-900 bg-cyan-200/90 border border-cyan-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
+        hex: '#0891b2'
+      },
+      magenta: {
+        code: 'magenta',
+        name: 'Magenta',
+        headerBg: 'bg-fuchsia-600',
+        headerText: 'text-white',
+        badgeBg: 'bg-fuchsia-700 text-white border border-fuchsia-300/60',
+        cardBorder: 'border-slate-900',
+        lineHeaderBg: 'bg-fuchsia-600 text-white border-b-2 border-fuchsia-700 font-bold',
+        dotBg: 'bg-fuchsia-500',
+        ringColor: 'ring-fuchsia-400',
+        slotBg: 'bg-fuchsia-100 hover:bg-fuchsia-200/90',
+        slotBorder: 'border-fuchsia-500 hover:border-fuchsia-600',
+        slotText: 'text-fuchsia-950',
+        slotIndexText: 'text-fuchsia-700 font-bold',
+        multiBadge: 'text-fuchsia-900 bg-fuchsia-200/90',
+        cbmBadgeClass: 'font-mono font-bold text-[7.5px] sm:text-[8px] text-fuchsia-900 bg-fuchsia-200/90 border border-fuchsia-300/90 px-1 py-0.2 rounded-xs whitespace-nowrap leading-none text-center max-w-full',
+        hex: '#c026d3'
       }
     };
 
-    // Palet warna bawaan per pintu saat proses aktif (warna variatif: Kuning, Biru, Orange, Merah, Hijau)
+    // Palet warna unik bawaan per pintu saat proses aktif (Pintu 08 s/d 15) dibedakan dengan warna variatif:
+    // Sesuai permintaan user: "warnanya jangan hanya biru bisa di ganti yang lain untuk semua pintu, warnanya jangan sama dibedakan kan warna banyak"
+    // Pintu 08: Biru, Pintu 09: Kuning, Pintu 10: Ungu, Pintu 11: Merah,
+    // Pintu 12: Cyan, Pintu 13: Orange, Pintu 14: Hijau, Pintu 15: Magenta
     const DEFAULT_DOOR_COLORS = {
-      8: 'kuning',
-      9: 'biru',
-      10: 'orange',
-      11: 'merah',
-      12: 'biru',
-      13: 'kuning',
-      14: 'hijau',
-      15: 'merah'
+      8: 'biru',      // Pintu 08: Biru
+      9: 'kuning',    // Pintu 09: Kuning
+      10: 'ungu',     // Pintu 10: Ungu (Contoh user: Pintu 10 Line 45-47)
+      11: 'merah',    // Pintu 11: Merah
+      12: 'cyan',     // Pintu 12: Cyan (Biru Muda)
+      13: 'orange',   // Pintu 13: Orange
+      14: 'hijau',    // Pintu 14: Hijau
+      15: 'magenta'   // Pintu 15: Magenta
     };
+
+    const ALL_DOOR_COLOR_KEYS = ['biru', 'kuning', 'ungu', 'merah', 'cyan', 'orange', 'hijau', 'magenta'];
+
+    /**
+     * Rotasi warna pintu secara bergantian saat label pintu diklik
+     */
+    function cycleDoorColor(doorNum) {
+      const currentTheme = getDoorTheme(doorNum);
+      const curIdx = ALL_DOOR_COLOR_KEYS.indexOf(currentTheme.code);
+      const nextColor = ALL_DOOR_COLOR_KEYS[(curIdx + 1) % ALL_DOOR_COLOR_KEYS.length];
+      setDoorColor(doorNum, nextColor);
+      showToast(`${formatDoorLabel(doorNum)} diubah ke warna ${COLOR_PALETTES[nextColor]?.name || nextColor}`, 'info');
+    }
+    window.cycleDoorColor = cycleDoorColor;
 
     /**
      * Dapatkan tema warna untuk sebuah Pintu
@@ -2370,7 +2747,7 @@
     function getDoorTheme(doorNum) {
       const status = getDoorStatus(doorNum);
 
-      // Cek apakah ada override warna eksplisit oleh user
+      // 1. Cek apakah ada pemilihan warna custom oleh operator pada kartu pintu
       if (state.doorColorOverrides && state.doorColorOverrides[doorNum]) {
         const customCode = state.doorColorOverrides[doorNum];
         if (COLOR_PALETTES[customCode]) {
@@ -2378,44 +2755,93 @@
         }
       }
 
+      // 2. Jika status pintu SELESAI -> Hijau
       if (status === 'SELESAI') {
         return { ...COLOR_PALETTES.hijau, status, pulse: false };
       }
+      // 3. Jika status pintu STANDBY -> Standby (Abu-abu)
       if (status === 'STANDBY') {
         return { ...COLOR_PALETTES.standby, status, pulse: false };
       }
 
-      // Default PROSES: gunakan palet bawaan per pintu (P9 Biru, P8 Kuning, P10 Orange, P11 Merah, dst.)
+      // 4. Default PROSES: Setiap pintu 08-15 memiliki warna unik tersendiri yang dibedakan
       const defaultCode = DEFAULT_DOOR_COLORS[doorNum] || 'biru';
       return { ...COLOR_PALETTES[defaultCode], status, pulse: true };
     }
 
     /**
      * Dapatkan tema warna untuk Line Staging tertentu:
-     * - Jika user mengubah warna line ini secara khusus (override), gunakan warna tersebut.
-     * - Jika sheet mendeteksi warna di Kolom O (misal 35mr/36kng/37pth -> 35 Merah, 36 Kuning, 37 Putih), gunakan warna dari sheet.
-     * - Jika tidak, line mewarisi warna dari Pintu pasangannya.
+     * ATURAN MUTLAK USER:
+     * 1. "jika warna pintu dan line disamakan apakah bisa misal LC 260919L009 PINTU 12 WARNA BIRU maka line yang dikolom O dan dashboardnya warna sama biru otomatis"
+     * 2. "untuk line dan pintunya belum ganti warna secara otomatis menyesuaikan jika pintu 8 biru maka line yang dipakai juga mengikuti warna biru"
+     * 3. "dan jika ST00 yang diline sudah discan maka hasilnya hilang dan warna line kembali putih"
+     * 4. "hanya warna line yang berubah jika data dan pintu sama"
      */
-    function getLineTheme(lineNum, doorNum) {
+    function getLineTheme(lineNum, doorNum, hasActiveData = null) {
+      // 1. Cek jika ada override kustom manual langsung pada line ini
       if (state.lineColorOverrides && state.lineColorOverrides[lineNum]) {
         const customCode = state.lineColorOverrides[lineNum];
         if (COLOR_PALETTES[customCode]) {
           return { ...COLOR_PALETTES[customCode], isCustom: true };
         }
       }
-      // Deteksi otomatis warna dari Kolom O sheet (misal 35mr -> merah, 36kng -> kuning, 37pth -> putih)
+
+      // 2. Evaluasi apakah line ini memiliki data aktif (pallet ST00/BR00/DS00 yang BELUM discan)
+      let isActive = false;
+      let matchedDoorNum = doorNum;
+
+      if (hasActiveData !== null) {
+        isActive = Boolean(hasActiveData);
+      } else {
+        // Cari di dataDoors apakah line ini memiliki minimal 1 pallet yang belum discan
+        for (const dNum of TARGET_DOORS) {
+          const d = state.dataDoors && state.dataDoors[dNum];
+          if (d && d.linePalletsMap && d.linePalletsMap[lineNum] && d.linePalletsMap[lineNum].length > 0) {
+            isActive = true;
+            matchedDoorNum = dNum;
+            break;
+          }
+        }
+      }
+
+      // Cari pintu pasangan dari alokasi line Kolom O jika belum ketemu
+      if (!matchedDoorNum) {
+        for (const dNum of TARGET_DOORS) {
+          const d = state.dataDoors && state.dataDoors[dNum];
+          if (d && d.linesSet && d.linesSet.has && d.linesSet.has(lineNum)) {
+            matchedDoorNum = dNum;
+            break;
+          }
+        }
+      }
+
+      // ATURAN 1: Jika line TIDAK MEMILIKI DATA atau semua ST00 pada line tersebut sudah discan
+      // -> Warna line OTOMATIS KEMBALI PUTIH!
+      // "dan jika ST00 yang diline sudah discan maka hasilnya hilang dan warna line kembali putih"
+      if (!isActive) {
+        return { ...COLOR_PALETTES.putih, isCustom: false, isIdleWhite: true };
+      }
+
+      // ATURAN 2: Jika sheet mendeteksi kode warna eksplisit di Kolom O (misal: 35mr -> merah, 36kng -> kuning)
       if (state.sheetLineColors && state.sheetLineColors[lineNum]) {
         const sheetCode = state.sheetLineColors[lineNum];
         if (COLOR_PALETTES[sheetCode]) {
           return { ...COLOR_PALETTES[sheetCode], isCustom: false, isSheetColor: true };
         }
       }
-      const doorTheme = getDoorTheme(doorNum);
-      return { ...doorTheme, isCustom: false };
+
+      // ATURAN 3: Sinkronisasi Otomatis Penuh: Warna Line = Warna Pintu pasangannya jika data dan pintu sama!
+      // "untuk line dan pintunya belum ganti warna secara otomatis menyesuaikan jika pintu 8 biru maka line yang dipakai juga mengikuti warna biru"
+      // "hanya warna line yang berubah jika data dan pintu sama"
+      // Contoh: Pintu 8 Biru -> Line 33 otomatis Biru!
+      // Contoh: Pintu 12 Biru -> Line 40 otomatis Biru!
+      // Contoh: Pintu 11 Merah -> Line 42 otomatis Merah!
+      const doorTheme = getDoorTheme(matchedDoorNum);
+      return { ...doorTheme, isCustom: false, isDoorMatched: true };
     }
 
     /**
-     * Ubah warna sebuah Pintu (dan secara otomatis memperbarui 3 Line terkait)
+     * Ubah warna sebuah Pintu (dan secara otomatis memperbarui Line yang dipakai)
      */
     function setDoorColor(doorNum, colorKey) {
       if (!state.doorColorOverrides) state.doorColorOverrides = {};
@@ -2429,6 +2855,20 @@
         state.doorStatusOverrides[doorNum] = 'STANDBY';
       } else {
         state.doorStatusOverrides[doorNum] = 'PROSES';
+      }
+
+      // Sinkronisasi otomatis penuh: Hapus override manual line untuk pintu ini
+      // agar seluruh line yang dipakai pintu ini 100% langsung mengikuti warna baru pintu!
+      const doorData = state.dataDoors && state.dataDoors[doorNum];
+      const associatedLines = (doorData && doorData.lines && doorData.lines.length > 0)
+        ? doorData.lines
+        : (DEFAULT_DOOR_LINES[doorNum] || []);
+
+      if (state.lineColorOverrides) {
+        associatedLines.forEach(ln => {
+          delete state.lineColorOverrides[ln];
+        });
+        localStorage.setItem('dock_line_colors', JSON.stringify(state.lineColorOverrides));
       }
 
       renderDoorsUI();
@@ -2607,67 +3047,55 @@
         });
         doorData.overflow.forEach(p => { doorTotalCbm += (p.cbm || 0); });
 
-        // Kartu Pintu Terpisah (Desain lebih kompak, proporsional, dan bergaya modern telemetry control)
+        // Kartu Pintu Terpisah (Desain proporsional, tulisan terbaca jelas dan bergaya modern telemetry)
         const doorCol = document.createElement('div');
-        doorCol.className = 'flex flex-col bg-white rounded-lg shadow-2xs hover:shadow-md border border-slate-300 hover:border-slate-400 overflow-hidden min-w-[190px] justify-between transition-all duration-150 group';
+        doorCol.className = 'flex flex-col bg-white rounded-lg shadow-2xs hover:shadow-md border border-slate-300 hover:border-slate-400 overflow-hidden min-w-[200px] justify-between transition-all duration-150 group';
         doorCol.id = `door-card-${doorNum}`;
 
         // Header Pintu dengan Tema Warna Terpilih & Pemilih Warna Interaktif (Merah, Kuning, Biru, Orange, Hijau)
         const theme = getDoorTheme(doorNum);
 
         const statusHeader = document.createElement('div');
-        statusHeader.className = `${theme.headerBg} ${theme.headerText || 'text-white'} px-2 py-1 flex flex-col gap-0.5 transition-colors shadow-2xs`;
+        statusHeader.className = `${theme.headerBg} ${theme.headerText || 'text-white'} px-2.5 py-1.5 flex flex-col gap-1 transition-colors shadow-2xs`;
         statusHeader.innerHTML = `
           <!-- Baris Utama: PINTU XX, Line XX-XX, & Status Pill -->
-          <div class="flex items-center justify-between w-full gap-1 flex-nowrap">
+          <div class="flex items-center justify-between w-full gap-1.5 flex-nowrap">
             <div class="flex items-center gap-1.5 flex-nowrap shrink-0">
-              <span class="font-black text-[11px] tracking-tight leading-none uppercase">${formatDoorLabel(doorNum)}</span>
-              <span class="text-[8.5px] font-mono font-bold bg-black/30 backdrop-blur-xs text-white px-1.5 py-0.5 rounded shadow-2xs border border-white/20 leading-none">${lineLabel}</span>
+              <button type="button" onclick="cycleDoorColor(${doorNum})" title="${formatDoorLabel(doorNum)} (Tema: ${theme.name}) • Klik untuk rotasi warna pintu (Biru, Kuning, Ungu, Merah, Cyan, Orange, Hijau, Magenta)" class="font-black text-[13px] tracking-tight leading-none uppercase hover:opacity-80 cursor-pointer text-left">${formatDoorLabel(doorNum)}</button>
+              <span class="text-[10px] font-mono font-bold bg-black/35 backdrop-blur-xs text-white px-1.5 py-0.5 rounded shadow-2xs border border-white/20 leading-none">${lineLabel}</span>
             </div>
-            <button type="button" onclick="toggleDoorStatus(${doorNum})" title="Status: ${theme.status} (Klik untuk ganti status: PROSES / SELESAI / STANDBY)" class="${theme.badgeBg} text-[7.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full cursor-pointer transition shadow-2xs flex items-center gap-1 hover:brightness-110 whitespace-nowrap shrink-0">
+            <button type="button" onclick="toggleDoorStatus(${doorNum})" title="Status: ${theme.status} (Klik untuk ganti status: PROSES / SELESAI / STANDBY)" class="${theme.badgeBg} text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full cursor-pointer transition shadow-2xs flex items-center gap-1 hover:brightness-110 whitespace-nowrap shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-white ${theme.pulse ? 'animate-ping' : ''} shrink-0"></span>
               <span class="whitespace-nowrap leading-none">${theme.status}</span>
             </button>
           </div>
-
-          <!-- Baris Pemilih Warna: Ringkas & Keren -->
-          <div class="flex items-center justify-between pt-0.5 border-t border-black/15 text-[7.5px] font-bold flex-nowrap">
-            <span class="opacity-80 font-mono tracking-widest uppercase text-[7px]">WARNA:</span>
-            <div class="flex items-center gap-1 shrink-0" title="Pilih tema warna untuk ${formatDoorLabel(doorNum)} & ${lineLabel}">
-              <button type="button" onclick="setDoorColor(${doorNum}, 'merah')" title="Merah" class="w-2.5 h-2.5 rounded-full bg-rose-600 border ${theme.code === 'merah' ? 'border-white ring-2 ring-rose-400 scale-120' : 'border-black/30 hover:scale-125'} cursor-pointer transition"></button>
-              <button type="button" onclick="setDoorColor(${doorNum}, 'kuning')" title="Kuning" class="w-2.5 h-2.5 rounded-full bg-amber-400 border ${theme.code === 'kuning' ? 'border-slate-900 ring-2 ring-amber-300 scale-120' : 'border-black/30 hover:scale-125'} cursor-pointer transition"></button>
-              <button type="button" onclick="setDoorColor(${doorNum}, 'biru')" title="Biru" class="w-2.5 h-2.5 rounded-full bg-blue-600 border ${theme.code === 'biru' ? 'border-white ring-2 ring-blue-400 scale-120' : 'border-black/30 hover:scale-125'} cursor-pointer transition"></button>
-              <button type="button" onclick="setDoorColor(${doorNum}, 'orange')" title="Orange" class="w-2.5 h-2.5 rounded-full bg-orange-500 border ${theme.code === 'orange' ? 'border-white ring-2 ring-orange-400 scale-120' : 'border-black/30 hover:scale-125'} cursor-pointer transition"></button>
-              <button type="button" onclick="setDoorColor(${doorNum}, 'hijau')" title="Hijau" class="w-2.5 h-2.5 rounded-full bg-emerald-600 border ${theme.code === 'hijau' ? 'border-white ring-2 ring-emerald-400 scale-120' : 'border-black/30 hover:scale-125'} cursor-pointer transition"></button>
-            </div>
-          </div>
         `;
         doorCol.appendChild(statusHeader);
 
-        // Header & Konten Pintu (Ukuran lebih compact & padat)
+        // Header & Konten Pintu (Ukuran terbaca jelas & proporsional)
         const headerEl = document.createElement('div');
-        headerEl.className = 'bg-white p-1.5 flex flex-col gap-1 flex-1 justify-between text-left';
+        headerEl.className = 'bg-white p-2 flex flex-col gap-1.5 flex-1 justify-between text-left';
 
         // Nomor LC
         const lcVal = doorData.lc || (pallets[0] && pallets[0].lc !== '-' ? pallets[0].lc : '-');
         const lcLabel = document.createElement('div');
-        lcLabel.className = 'w-full px-1.5 py-0.5 bg-slate-50/90 text-slate-800 border border-slate-200/90 text-[9.5px] font-mono rounded flex items-center justify-between tracking-tight shadow-2xs';
+        lcLabel.className = 'w-full px-2 py-1 bg-slate-50/95 text-slate-800 border border-slate-200/90 text-[11px] font-mono rounded flex items-center justify-between tracking-tight shadow-2xs';
         lcLabel.innerHTML = `
-          <span class="text-[7.5px] font-bold text-slate-400 uppercase tracking-widest">NO. LC</span>
-          <span class="font-extrabold text-blue-900 tracking-tight truncate max-w-[125px]">${lcVal}</span>
+          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">NO. LC</span>
+          <span class="font-black text-[12px] text-blue-950 tracking-tight truncate max-w-[130px]">${lcVal}</span>
         `;
         lcLabel.title = `Nomor LC (Loading Card) / Route: ${lcVal}`;
 
         // Tipe Armada (High-tech dark cockpit badge)
         const armadaBadge = document.createElement('div');
         armadaBadge.className = doorData.armada 
-          ? 'w-full px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-amber-300 text-[9.5px] font-black rounded tracking-wide truncate flex items-center justify-between shadow-2xs'
-          : 'w-full px-1.5 py-0.5 bg-slate-100 text-slate-400 text-[8.5px] font-medium rounded italic border border-slate-200 text-center truncate';
+          ? 'w-full px-2 py-1 bg-slate-900 border border-slate-800 text-amber-300 text-[11.5px] font-black rounded tracking-wide truncate flex items-center justify-between shadow-2xs'
+          : 'w-full px-2 py-1 bg-slate-100 text-slate-400 text-[10px] font-semibold rounded italic border border-slate-200 text-center truncate';
         
         if (doorData.armada) {
           armadaBadge.innerHTML = `
             <span class="truncate uppercase">${armadaLabel}</span>
-            <span class="text-[7px] font-mono text-slate-400 uppercase tracking-widest px-1 py-0.2 rounded bg-slate-800 shrink-0 ml-1">TRUCK</span>
+            <span class="text-[8px] font-mono text-slate-300 uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-800 shrink-0 ml-1">TRUCK</span>
           `;
         } else {
           armadaBadge.textContent = armadaLabel;
@@ -2678,38 +3106,38 @@
         const picVal = doorData.pic || '';
         const picBadge = document.createElement('div');
         picBadge.className = picVal
-          ? 'w-full px-1.5 py-0.5 bg-emerald-50/70 text-emerald-950 border border-emerald-200/80 text-[8.5px] font-bold rounded flex items-center justify-between shadow-2xs'
-          : 'w-full px-1.5 py-0.5 bg-slate-50 text-slate-400 border border-slate-200 text-[8.5px] font-medium rounded italic flex items-center justify-between';
+          ? 'w-full px-2 py-1 bg-emerald-50/80 text-emerald-950 border border-emerald-200/90 rounded flex items-center justify-between shadow-2xs'
+          : 'w-full px-2 py-1 bg-slate-50 text-slate-400 border border-slate-200 rounded flex items-center justify-between text-[10px] font-medium italic';
         
         if (picVal) {
           picBadge.innerHTML = `
-            <span class="text-[7.5px] font-extrabold uppercase text-emerald-700 tracking-wider">PIC</span>
-            <span class="font-bold text-slate-800 truncate max-w-[130px]">${picVal}</span>
+            <span class="text-[9px] font-extrabold uppercase text-emerald-800 tracking-wider">PIC</span>
+            <span class="font-extrabold text-[11px] text-slate-900 truncate max-w-[135px]">${picVal}</span>
           `;
           picBadge.title = `PIC yang bertugas: ${picVal} (Ambil data pada Kolom S)`;
         } else {
           picBadge.innerHTML = `
-            <span class="text-[7.5px] uppercase text-slate-400 tracking-wider">PIC</span>
-            <span class="text-slate-400">-</span>
+            <span class="text-[9px] uppercase text-slate-400 tracking-wider">PIC</span>
+            <span class="text-slate-400 text-[10.5px]">-</span>
           `;
           picBadge.title = 'PIC bertugas belum terisi (Kolom S)';
         }
 
-        // Telemetry Grid: Staging & Belum ST berdampingan rapi (mengurangi ketinggian kartu secara signifikan)
+        // Telemetry Grid: Staging & Belum ST berdampingan rapi
         const telemetryGrid = document.createElement('div');
-        telemetryGrid.className = 'grid grid-cols-2 gap-1 w-full';
+        telemetryGrid.className = 'grid grid-cols-2 gap-1.5 w-full';
 
         // Kolom 1: Staging Slot & CBM
         const stagingBox = document.createElement('div');
-        stagingBox.className = 'bg-blue-50/70 border border-blue-200/90 rounded p-1 flex flex-col justify-between text-left shadow-2xs';
+        stagingBox.className = 'bg-blue-50/80 border border-blue-200/90 rounded p-1.5 flex flex-col justify-between text-left shadow-2xs';
         stagingBox.innerHTML = `
-          <div class="flex items-center justify-between text-[7.5px] font-extrabold uppercase tracking-wider text-blue-700">
+          <div class="flex items-center justify-between text-[9px] font-extrabold uppercase tracking-wider text-blue-800">
             <span>STAGING</span>
-            <span class="text-blue-600 font-bold font-mono">${formatCbm(doorTotalCbm)}</span>
+            <span class="text-blue-700 font-bold font-mono text-[10.5px]">${formatCbm(doorTotalCbm)}</span>
           </div>
-          <div class="flex items-baseline justify-between mt-0.5">
-            <span class="font-black text-[10.5px] font-mono text-slate-800 leading-none">${pallets.length}<span class="text-[8px] text-slate-500 font-semibold">/${maxPalletSlots}</span></span>
-            ${overflowCount > 0 ? `<button type="button" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-[7.5px] px-1 py-0.2 rounded cursor-pointer leading-none shadow-xs">+${overflowCount}</button>` : ''}
+          <div class="flex items-baseline justify-between mt-1">
+            <span class="font-black text-[13px] font-mono text-slate-900 leading-none">${pallets.length}<span class="text-[10px] text-slate-500 font-bold">/${maxPalletSlots}</span></span>
+            ${overflowCount > 0 ? `<button type="button" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-[9px] px-1.5 py-0.5 rounded cursor-pointer leading-none shadow-xs">+${overflowCount}</button>` : ''}
           </div>
         `;
         if (overflowCount > 0) {
@@ -2728,15 +3156,15 @@
 
         const unassignedBox = document.createElement('div');
         unassignedBox.className = hasUnassigned
-          ? 'bg-amber-50/80 border border-amber-300 rounded p-1 flex flex-col justify-between text-left shadow-2xs cursor-pointer hover:bg-amber-100 transition select-none'
-          : 'bg-slate-50 border border-slate-200 rounded p-1 flex flex-col justify-between text-left select-none';
+          ? 'bg-amber-50/90 border border-amber-300 rounded p-1.5 flex flex-col justify-between text-left shadow-2xs cursor-pointer hover:bg-amber-100 transition select-none'
+          : 'bg-slate-50 border border-slate-200 rounded p-1.5 flex flex-col justify-between text-left select-none';
 
         unassignedBox.innerHTML = `
-          <div class="flex items-center justify-between text-[7.5px] font-extrabold uppercase tracking-wider ${hasUnassigned ? 'text-amber-800' : 'text-slate-400'}">
+          <div class="flex items-center justify-between text-[9px] font-extrabold uppercase tracking-wider ${hasUnassigned ? 'text-amber-800' : 'text-slate-400'}">
             <span>BELUM ST</span>
-            <span class="text-[7.5px] font-mono ${hasUnassigned ? 'text-amber-700 font-bold' : 'text-slate-400'}">${unassignedCount > 0 ? unassignedCount + ' item' : '0'}</span>
+            <span class="text-[9px] font-mono ${hasUnassigned ? 'text-amber-800 font-bold' : 'text-slate-400'}">${unassignedCount > 0 ? unassignedCount + ' item' : '0'}</span>
           </div>
-          <div class="font-black text-[10.5px] font-mono leading-none mt-0.5 ${hasUnassigned ? 'text-amber-950' : 'text-slate-400'}">
+          <div class="font-black text-[13px] font-mono leading-none mt-1 ${hasUnassigned ? 'text-amber-950' : 'text-slate-400'}">
             ${formatCbm(unassignedCbm)}
           </div>
         `;
@@ -2771,33 +3199,33 @@
         const dotColor = isFullyLoaded ? 'bg-emerald-500' : 'bg-amber-500';
 
         const progressWidget = document.createElement('div');
-        progressWidget.className = 'w-full p-1.5 rounded bg-slate-950 border border-slate-800 text-white shadow-2xs select-none cursor-pointer hover:border-slate-600 transition flex flex-col gap-1';
+        progressWidget.className = 'w-full p-2 rounded bg-slate-950 border border-slate-800 text-white shadow-2xs select-none cursor-pointer hover:border-slate-600 transition flex flex-col gap-1.5';
         progressWidget.setAttribute('role', 'button');
         progressWidget.setAttribute('tabindex', '0');
         progressWidget.title = `Loading Progress ${formatDoorLabel(doorNum)}: Kapasitas ${capacity} CBM (${armadaLabel})\nSudah Dimuat (Kolom L & M): ${formatCbm(loadedCbm)} (${loadedPercent.toFixed(1)}%)\nSisa Muatan: ${formatNumber(sisaCbm)}\nKurang / Belum Muat: ${kurangPercent.toFixed(1)}%\nKlik untuk melihat rincian muat`;
 
         progressWidget.innerHTML = `
-          <div class="flex items-center justify-between text-[8.5px] font-mono leading-none">
-            <div class="flex items-center gap-1">
-              <span class="relative flex h-1.5 w-1.5">
+          <div class="flex items-center justify-between text-[9.5px] font-mono leading-none">
+            <div class="flex items-center gap-1.5">
+              <span class="relative flex h-2 w-2">
                 <span class="${pingColor} animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-1.5 w-1.5 ${dotColor}"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 ${dotColor}"></span>
               </span>
-              <span class="text-[7.5px] font-bold uppercase tracking-wider text-slate-400">KURANG:</span>
-              <span class="font-black ${statusColor} text-[9.5px]">${kurangPercent.toFixed(1)}%</span>
+              <span class="text-[9px] font-bold uppercase tracking-wider text-slate-300">KURANG:</span>
+              <span class="font-black ${statusColor} text-[12px]">${kurangPercent.toFixed(1)}%</span>
             </div>
-            <div class="text-[8px] font-mono text-slate-300">
-              <span class="text-slate-500 text-[7px] uppercase">Sisa</span> <span class="font-bold text-amber-200">${formatNumber(sisaCbm)}</span>
+            <div class="text-[9px] font-mono text-slate-300">
+              <span class="text-slate-400 text-[8px] uppercase">Sisa</span> <span class="font-black text-amber-200 text-[11px]">${formatNumber(sisaCbm)}</span>
             </div>
           </div>
 
-          <div class="relative w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/80 shadow-inner">
+          <div class="relative w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/90 shadow-inner">
             <div class="h-full rounded-full transition-all duration-700 ease-out ${isFullyLoaded ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-400'} animated-stripes" style="width: ${loadedPercent}%;"></div>
           </div>
 
-          <div class="flex items-center justify-between text-[7.5px] font-mono text-slate-400 px-0.5 leading-none">
+          <div class="flex items-center justify-between text-[9px] font-mono text-slate-300 px-0.5 leading-none">
             <span>Muat: <strong class="text-cyan-300 font-bold">${formatCbm(loadedCbm)}</strong> (${loadedPercent.toFixed(0)}%)</span>
-            <span class="text-slate-300 font-semibold">${capacity} CBM</span>
+            <span class="text-slate-200 font-bold">${capacity} CBM</span>
           </div>
         `;
 
@@ -2812,10 +3240,10 @@
         // Tombol tautan fokus cepat ke Grup Line terkait
         const focusLineBtn = document.createElement('button');
         focusLineBtn.type = 'button';
-        focusLineBtn.className = 'w-full py-0.5 px-1.5 bg-slate-100 hover:bg-slate-900 hover:text-white active:scale-98 text-slate-600 text-[8px] font-black uppercase tracking-wider rounded border border-slate-200/90 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs';
+        focusLineBtn.className = 'w-full py-1 px-2 bg-slate-100 hover:bg-slate-900 hover:text-white active:scale-98 text-slate-700 text-[9.5px] font-black uppercase tracking-wider rounded border border-slate-300 flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs';
         focusLineBtn.innerHTML = `
           <span>Fokus ${lineLabel}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 opacity-75" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
         `;
@@ -2945,27 +3373,21 @@
         lineCol.id = `line-col-${lineNum}`;
         lineCol.className = 'flex flex-col gap-1 transition-all duration-200';
 
-        // Tema warna untuk Line ini (bisa diubah bebas: Merah, Kuning, Biru, Orange, Hijau)
-        const lineTheme = getLineTheme(lineNum, doorNum);
+        // Tema warna untuk Line ini:
+        // hasActiveData: true jika line ini memiliki data pallet yang belum discan
+        const hasActiveData = linePallets.length > 0;
+        const lineTheme = getLineTheme(lineNum, doorNum, hasActiveData);
 
-        // Header Line dengan warna dinamis & pemilih warna instan
+        // Header Line dengan warna dinamis & otomatis mengikuti pintu & data
         const stgHeader = document.createElement('div');
-        stgHeader.className = `${lineTheme.lineHeaderBg} text-center py-1 px-1 rounded-t-xs tracking-wider shadow-2xs transition-colors select-none flex flex-col items-center justify-center gap-0.5 cursor-pointer`;
+        stgHeader.className = `${lineTheme.lineHeaderBg} text-center py-1.5 px-1 rounded-t-xs tracking-wider shadow-2xs transition-colors select-none flex flex-col items-center justify-center gap-0.5 cursor-pointer`;
         stgHeader.onclick = () => cycleLineColor(lineNum, doorNum);
-        stgHeader.title = `${lineName} (${lineTheme.name}) • Terhubung ke ${formatDoorLabel(doorNum)}\nKlik untuk rotasi warna atau klik bulatan warna di bawah (Merah / Kuning / Putih / Biru / Orange / Hijau)`;
+        stgHeader.title = `${lineName} (${lineTheme.name}) • Terhubung ke ${formatDoorLabel(doorNum)} • Klik untuk rotasi warna manual`;
 
         stgHeader.innerHTML = `
           <div class="flex items-center justify-between w-full px-0.5">
             <span class="text-[10px] font-black leading-none">${lineName}</span>
-            <span class="w-2.5 h-2.5 rounded-full ${lineTheme.dotBg} border border-white/90 shadow-2xs shrink-0" title="Warna saat ini: ${lineTheme.name}${lineTheme.isCustom ? ' (Kustom)' : (lineTheme.isSheetColor ? ' (Otomatis Sheet)' : ' (Ikut Pintu)')}"></span>
-          </div>
-          <div class="flex items-center justify-center gap-0.5 mt-0.5 w-full pt-0.5 border-t border-black/15" onclick="event.stopPropagation()">
-            <button type="button" onclick="setLineColor(${lineNum}, 'merah')" title="${lineName}: Ganti ke Merah" class="w-2.5 h-2.5 rounded-full bg-rose-600 border ${lineTheme.code === 'merah' ? 'border-white ring-1.5 ring-rose-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-            <button type="button" onclick="setLineColor(${lineNum}, 'kuning')" title="${lineName}: Ganti ke Kuning" class="w-2.5 h-2.5 rounded-full bg-amber-400 border ${lineTheme.code === 'kuning' ? 'border-slate-900 ring-1.5 ring-amber-200 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-            <button type="button" onclick="setLineColor(${lineNum}, 'putih')" title="${lineName}: Ganti ke Putih" class="w-2.5 h-2.5 rounded-full bg-slate-200 border ${lineTheme.code === 'putih' ? 'border-slate-900 ring-1.5 ring-slate-400 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-            <button type="button" onclick="setLineColor(${lineNum}, 'biru')" title="${lineName}: Ganti ke Biru" class="w-2.5 h-2.5 rounded-full bg-blue-600 border ${lineTheme.code === 'biru' ? 'border-white ring-1.5 ring-blue-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-            <button type="button" onclick="setLineColor(${lineNum}, 'orange')" title="${lineName}: Ganti ke Orange" class="w-2.5 h-2.5 rounded-full bg-orange-500 border ${lineTheme.code === 'orange' ? 'border-white ring-1.5 ring-orange-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
-            <button type="button" onclick="setLineColor(${lineNum}, 'hijau')" title="${lineName}: Ganti ke Hijau" class="w-2.5 h-2.5 rounded-full bg-emerald-600 border ${lineTheme.code === 'hijau' ? 'border-white ring-1.5 ring-emerald-300 scale-125' : 'border-black/30 hover:scale-130'} cursor-pointer transition shadow-2xs"></button>
+            <span class="w-2.5 h-2.5 rounded-full ${lineTheme.dotBg} border border-white/90 shadow-2xs shrink-0" title="Warna saat ini: ${lineTheme.name}${lineTheme.isCustom ? ' (Kustom)' : (lineTheme.isSheetColor ? ' (Otomatis Sheet)' : (lineTheme.isIdleWhite ? ' (Putih - Belum Terisi)' : ` (Mengikuti ${formatDoorLabel(doorNum)})`))}"></span>
           </div>
         `;
         lineCol.appendChild(stgHeader);
@@ -2973,7 +3395,7 @@
         for (let slotIdx = 0; slotIdx < 9; slotIdx++) {
           const slotNum = slotIdx + 1;
           const palletItem = linePallets[slotIdx];
-          const slotBox = createPalletSlotElement(slotNum, palletItem, doorNum, lineName, doorData);
+          const slotBox = createPalletSlotElement(slotNum, palletItem, doorNum, lineName, doorData, lineTheme);
           lineCol.appendChild(slotBox);
         }
 
@@ -3002,6 +3424,12 @@
       const linesSubEl = document.getElementById('lines-main-subtitle');
       if (linesSubEl) {
         linesSubEl.textContent = `1 Kotak Staging Terpadu • ${totalLines} Line (9 Slot Pallet / Line • Data Kolom P & Kolom O)`;
+      }
+
+      // Update badge jumlah pallet yang sudah discan
+      const badgeScanned = document.getElementById('badge-scanned-count');
+      if (badgeScanned) {
+        badgeScanned.textContent = `${state.scannedTokens ? state.scannedTokens.size : 0} Pallet`;
       }
 
       updateHeaderStats();
@@ -3128,6 +3556,13 @@
           rowCount: palletItem.rowCount || 1,
           rows: palletItem.rows || []
         }];
+      }
+
+      currentModalPalletItem = palletItem;
+      const btnScanModal = document.getElementById('btn-scan-current-st0');
+      if (btnScanModal) {
+        const canScan = Boolean(palletItem.st0 && palletItem.st0.match(/^(?:ST|BR|DS)/i));
+        btnScanModal.style.display = canScan ? 'flex' : 'none';
       }
 
       renderModalArticlesTable('');
