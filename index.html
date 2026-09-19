@@ -155,17 +155,9 @@
           </svg>
         </div>
         <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white uppercase">
-              Monitoring Staging Outbound
-            </h1>
-            <span class="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded">
-              Dock 08 - 15 • Kolom P (Line) & Kolom O • Kolom Q (Pintu)
-            </span>
-          </div>
-          <p class="text-xs text-slate-400">
-            Sistem Kontrol Alokasi Dermaga & Verifikasi Pallet Outbound
-          </p>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white uppercase">
+            Monitoring Staging Outbound
+          </h1>
         </div>
       </div>
 
@@ -253,8 +245,8 @@
   <section id="status-bar" class="bg-white border-b border-slate-200 px-4 py-2.5 sm:px-6 shadow-sm">
     <div class="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-4">
       
-      <!-- Sumber Data Info -->
-      <div class="flex items-center gap-2 text-xs text-slate-600">
+      <!-- Sumber Data Info (Hidden) -->
+      <div class="hidden items-center gap-2 text-xs text-slate-600">
         <span class="font-semibold text-slate-900 flex items-center gap-1">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -394,22 +386,15 @@
         <!-- =================================================== -->
         <section id="doors-section" class="w-full">
           
-          <!-- Header Baris Line Outbound (Pintu Outbound 08 - 15) -->
+          <!-- Header Baris Pintu Outbound (08 - 15) -->
           <div class="flex items-center justify-between mb-2.5 px-1">
             <div class="flex items-center gap-2.5">
               <span class="w-2.5 h-6 rounded-xs bg-blue-600 inline-block shadow-2xs"></span>
               <div class="flex items-center gap-2">
                 <h2 class="text-sm sm:text-base font-black uppercase text-slate-900 tracking-wider">
-                  LINE OUTBOUND (PINTU OUTBOUND 08 - 15)
+                  PINTU OUTBOUND 08 - 15
                 </h2>
               </div>
-              <span class="text-xs text-slate-500 font-medium hidden md:inline">
-                • Status Armada, PIC Checker, No. LC, Kolom P (Line) & Kolom O, Kolom Q (Pintu)
-              </span>
-            </div>
-
-            <div class="flex items-center gap-2 text-xs text-slate-500 font-mono">
-              <span>Sejajar langsung dengan Line Staging di bawah ↓</span>
             </div>
           </div>
 
@@ -425,50 +410,16 @@
         <section id="lines-unified-section" class="w-full bg-white border-2 border-slate-900 rounded-xl shadow-md min-w-[2380px] transition-all">
           
           <!-- Header Utama 1 Kotak Line Staging -->
-          <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between border-b-2 border-slate-900 gap-3 rounded-t-lg">
-            
-            <!-- Sisi Kiri: Tombol Navigasi Cepat ke Line -->
-            <div class="flex items-center justify-start gap-1.5 shrink-0 min-w-[320px]">
-              <div class="inline-flex items-center gap-1 px-2 py-1 bg-slate-800/90 text-slate-200 border border-slate-700 rounded text-[10.5px] font-mono">
-                <span class="text-slate-400 text-[10px] uppercase font-bold mr-0.5">Navigasi:</span>
-                <button type="button" onclick="scrollToSpecificLine(33)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 33 (Awal)">◀ Line 33</button>
-                <button type="button" onclick="scrollToSpecificLine(42)" class="px-1.5 py-0.5 bg-blue-800 hover:bg-blue-700 rounded text-[10px] font-bold text-blue-200 hover:text-white transition cursor-pointer" title="Lompat ke Line 42">Line 42</button>
-                <button type="button" onclick="scrollToSpecificLine(45)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 45 (Tengah)">Line 45</button>
-                <button type="button" onclick="scrollToSpecificLine(51)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 51 (Pintu 14)">Line 51</button>
-                <button type="button" onclick="scrollToSpecificLine(57)" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 rounded text-[10px] font-bold text-white transition cursor-pointer" title="Lompat ke Line 57 (Pintu 15)">Line 57</button>
-                <button type="button" onclick="scrollToSpecificLine(62)" class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded text-[10.5px] transition cursor-pointer shadow-xs" title="Lompat ke Line 62 (Line Paling Kanan)">▶ Line 62</button>
-              </div>
-            </div>
-
-            <!-- Posisi Tengah: Judul & Subjudul Line Staging Outbound -->
-            <div class="flex-1 flex flex-col items-center justify-center text-center px-2">
-              <div class="flex items-center justify-center gap-2">
-                <span class="w-2.5 h-6 rounded-xs bg-emerald-500 inline-block shrink-0"></span>
-                <h2 id="lines-main-title" class="text-sm sm:text-base font-black uppercase tracking-wider text-white">
-                  LINE STAGING OUTBOUND (LINE 33 - LINE 62)
-                </h2>
-                <span id="lines-main-subtitle" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded shrink-0">
-                  1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Line dari Kolom O, Pallet dari Kolom K)
-                </span>
-              </div>
-              <p class="text-[11px] text-slate-300 mt-0.5 text-center">
-                Area Staging Pallet: Kolom O (LINE OUTBOUND) • Kolom K (Data ST00 / BR00 / DS00) • Kolom Q (Pintu 08-15) • Klik nomor Pallet untuk rincian barang pivot
-              </p>
-            </div>
-
-            <!-- Sisi Kanan: Ringkasan Status ST/BR dan Kosong -->
-            <div class="flex items-center justify-end gap-2 text-xs font-mono shrink-0 min-w-[320px]">
-              <span class="px-2.5 py-1 bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 rounded font-bold text-[11px]">
-                Terisi ST: <span id="summary-st0-count">0</span>
-              </span>
-              <span class="px-2.5 py-1 bg-sky-950/90 text-sky-300 border border-sky-500/50 rounded font-bold text-[11px]">
-                Terisi BR: <span id="summary-br0-count">0</span>
-              </span>
-              <span class="px-2.5 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded font-semibold text-[11px]">
-                Kosong: <span id="summary-empty-count">0</span>
+          <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-center border-b-2 border-slate-900 gap-3 rounded-t-lg">
+            <div class="flex items-center justify-center gap-2">
+              <span class="w-2.5 h-6 rounded-xs bg-emerald-500 inline-block shrink-0"></span>
+              <h2 id="lines-main-title" class="text-sm sm:text-base font-black uppercase tracking-wider text-white">
+                LINE STAGING OUTBOUND (LINE 33 - LINE 62)
+              </h2>
+              <span id="lines-main-subtitle" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded shrink-0">
+                1 Kotak Staging Terpadu • 30 Line (9 Slot Pallet / Line • Line dari Kolom O, Pallet dari Kolom K)
               </span>
             </div>
-
           </div>
 
           <!-- Konten 30 Line di dalam SATU KOTAK (Line 33 s/d Line 62 tanpa skat / pembatas) -->
